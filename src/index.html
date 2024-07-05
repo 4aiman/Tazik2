@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <link rel="stylesheet" href="styles.css" /> -->
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tazik 2.0 (ex ttlaz)</title>
+    <link rel="stylesheet" href="./lib/highlight/styles/a11y-dark.css">
+    <script src="./lib/highlight/highlight.js"></script>
+
+    <!--======================= code mirror stuff ========================-->
+      <!-- CodeMirror itself -->
+      <script src="./lib/codemirror-5.65.16/lib/codemirror.js"></script>
+
+      <!-- CodeMirror Styles -->
+      <link href="./lib/codemirror-5.65.16/lib/codemirror.css" rel="stylesheet" />
+      <link href="./lib/codemirror-5.65.16/addon/lint/lint.css" rel="stylesheet" > 
+      <link href="./lib/codemirror-5.65.16/addon/hint/show-hint.css" rel="stylesheet" > 
+      <link href="./lib/codemirror-5.65.16/addon/fold/foldgutter.css" rel="stylesheet" />
+      <!-- A dark Guaranteed to be loved by everyone -->
+      <link href="./lib/codemirror-5.65.16/theme/monokai.css" rel="stylesheet" />
+
+      <!-- CodeMirror Addons -->
+      <script src="./lib/codemirror-5.65.16/addon/mode/simple.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/edit/closebrackets.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/fold/foldcode.js"></script>      
+      <script src="./lib/codemirror-5.65.16/addon/fold/foldgutter.js"></script>        
+      <script src="./lib/codemirror-5.65.16/addon/lint/lint.js"></script>
+      <!-- autocomletion  -->
+      <script src="./lib/codemirror-5.65.16/addon/hint/show-hint.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/hint/javascript-hint.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/hint/html-hint.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/hint/css-hint.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/hint/xml-hint.js"></script>
+
+      <script src="./lib/codemirror-5.65.16/addon/lint/javascript-lint.js"></script>
+      <script src="./lib/codemirror-5.65.16/addon/lint/javascript-lint.js"></script>
+
+      <script src="./lib/jshint@2.13.2.js"></script>
+      <script src="./lib/jsonlint.js"></script>
+      <script src="./lib/csslint.js"></script>
+
+      <!-- CodeMirror syntax highlighters-->
+      <script src="./lib/codemirror-5.65.16/mode/javascript/javascript.js"></script>
+      <script src="./lib/codemirror-5.65.16/mode/markdown/markdown.js"></script>
+      <script src="./lib/codemirror-5.65.16/mode/lua/lua.js"></script>
+      <script src="./lib/codemirror-5.65.16/mode/rust/rust.js"></script>
+      <script src="./lib/codemirror-5.65.16/mode/htmlmixed/htmlmixed.js"></script>
+      <script src="./lib/codemirror-5.65.16/mode/css/css.js"></script>
+      <script src="./lib/codemirror-5.65.16/mode/xml/xml.js"></script>
+      
+    <!--======================= js-beautify ========================-->
+    <script src="./lib/js-beautify/beautify.js"></script>
+    <script src="./lib/js-beautify/beautify-css.js"></script>
+    <script src="./lib/js-beautify/beautify-html.js"></script>
+    
+    <!--============================================================-->
+
+
+
+  </head>
+
+  <body onload="init()">
+
+    <div class="navbar">
+      <div class="dropdown">
+        <button class="dropbtn">File</button>
+        <div class="dropdown-content">
+          <!-- <div class="dropdown-item"><hr></div> -->
+          <div class="dropdown-item" id="app_exit_menu_item">Exit</div>
+        </div>
+      </div> 
+      <div class="dropdown">
+        <button class="dropbtn">Tools</button>
+        <div class="dropdown-content">
+          <div class="dropdown-item" id="password_generator_menu_item">Generate a secure password</div>
+        </div>
+      </div> 
+      <div class="dropdown">
+        <button class="dropbtn">Help</button>
+        <div class="dropdown-content">
+          <div class="dropdown-item" id="app_about_menu_item">About Tazik</div>
+          <div class="dropdown-item" id="app_special_thanks_menu_item">Special thanks</div>
+          <div class="dropdown-item" id="app_licenses_menu_item">Licences</div>
+        </div>
+      </div> 
+      <div class="dropdown right_floater">
+        <button class="dropbtn">?</button>
+      </div> 
+    </div>
+
+    <div id="content">
+      <div class="sidebar-left">
+        <label><input type="radio" name="current_mode" id="collections_button"  onclick="handle_buttons(this)" checked >📂<br>Collections</label>
+        <label><input type="radio" name="current_mode" id="environments_button" onclick="handle_buttons(this)"         >🌍<br>Environments</label>
+        <label><input type="radio" name="current_mode" id="history_button"      onclick="handle_buttons(this)"         >🕛<br>History</label>
+      </div>
+
+      <div id="main_area">
+
+        <div id="treeview1">
+          <div id="collection_toolbar" class="navbar">
+            <div class="dropdown" id="collection_add_menu">
+              <button class="dropbtn">📁</button>
+              <div class="dropdown-content">                
+                <div class="dropdown-item" id="add_collection"    value="add_collection"   >Create empty collection</div>
+                <div class="dropdown-item" id="import_collection" value="import_collection">Import collection</div>
+              </div>              
+            </div>
+            <input id="collection-search" type="text" value="asd"></input>
+          </div>
+          tree
+        </div>
+
+        <div id="request_area">          
+          <div id="top_row_of_the_window">
+            <div class="tabbar" id="requests_tabbar">
+                <button id="request_row_left_button">&lt;</button>
+                <div id="request_bar_scroll_area">
+                  
+                </div>
+                <button id="request_row_right_button">&gt;</button>
+                <button id="add_request_button">+</button>
+                <!-- <label><input type="radio" name="request_params_tabbar" value="params"        class="tab_header_button" checked >Params</label> -->
+            </div>
+            
+            <div id="sendbar">
+              <div id="method_wrapper">
+                <div class="dropdown">
+                  <button class="dropbtn green bold" id="metod_select" value="GET">
+                    GET                  
+                  </button>
+                  <div class="dropdown-content-replace">
+                    <div class="dropdown-item green"  value="GET">GET</div>
+                    <div class="dropdown-item yellow" value="POST">POST</div>
+                    <div class="dropdown-item blue"   value="PUT">PUT</div>
+                    <div class="dropdown-item purple" value="PATCH">PATCH</div>
+                    <div class="dropdown-item pink"   value="OPTIONS">OPTIONS</div>
+                    <div class="dropdown-item red"    value="DELETE">DELETE</div>
+                    <div class="dropdown-item aqua"   value="HEAD">HEAD</div>              
+                    <div class="dropdown-item brown"  value="REPORT">REPORT</div>              
+                    <div class="dropdown-item"><input id="add_method_input" type="text" placeholder=" Add your own" id="add_your_own_method"></div>
+                  </div>              
+                </div>  
+                <input type="text" id="url_input">
+              </div>
+              <button id="send_request" onclick="send_request()"> Send </button>
+            </div>
+
+            <div class="navbar-links" id="current_request_path">
+              <a href="#">Collection</a> > <a href="#">Folder</a> > <a href="#">request</a>
+            </div>
+          </div>
+          
+          <div id="starting_message">            
+            Add a request by clicking that <button id="mock_button">+</button> button to start using the app
+          </div>
+          <div id="request_data_wrapper">
+            <div id="request_body_wrapper">              
+              <div id="request_params_tabview" class="tabview">
+
+                <div id="request_params_tabbar" class="tabbar">
+                  <label><input type="radio" name="request_params_tabbar" value="params"        class="tab_header_button" checked >Params</label>
+                  <label><input type="radio" name="request_params_tabbar" value="authorization" class="tab_header_button"         >Authorization</label>
+                  <label><input type="radio" name="request_params_tabbar" value="headers"       class="tab_header_button"         >Headers</label>
+                  <label><input type="radio" name="request_params_tabbar" value="body"          class="tab_header_button"         >Body</label>
+                  <label><input type="radio" name="request_params_tabbar" value="scripts"       class="tab_header_button"         >Scripts</label>
+                  <!-- <label><input type="radio" name="request_params_tabbar" value="settings"      class="tab_header_button"         >Settings</label> -->
+                  <label><input type="checkbox" id="enable_proxy">Enable proxy</label>
+                </div>            
+
+                <div id="request_params" class="tabpanel">              
+                  <table id="query_params_table" class="request_params_table">
+                    <tr>
+                      <th>✅</th>
+                      <th>Key</th>
+                      <th>Value</th>
+                      <th>Description</th>
+                      <th>🗑️</th>
+                    </tr>
+                    <tr class="hidden">
+                      <td colspan="5">
+                        <button class="add_row_button">+</button>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div id="request_authorizations" class="tabpanel">
+                  <div id="query_auth_panels_wrapper">
+                    <div id="auth_left_side">
+                      <span>Auth type</span>
+                      <div class="dropdown">
+                        <button class="dropbtn" id="auth_type_select" value="inherit">
+                          Inherit
+                        </button>
+                        <div class="dropdown-content">
+                          <div class="dropdown-item" value="inherit">Inherit</div>
+                          <div class="dropdown-item" value="none">None</div>
+                          <div class="dropdown-item" value="basic">Basic authentication</div>
+                          <div class="dropdown-item" value="bearer">Bearer token</div>
+                          <!-- <div class="dropdown-item" value="jwt">JWT bearer</div> -->
+                          <!-- <div class="dropdown-item" value="digest">Digest authentication</div> -->
+                          <!-- <div class="dropdown-item" value="oauth1">OAuth 1.0</div> -->
+                          <!-- <div class="dropdown-item" value="oauth2">OAuth 2.0</div> -->
+                          <!-- <div class="dropdown-item" value="hawk">Hawk authentication</div> -->
+                          <!-- <div class="dropdown-item" value="aws">AWS Signature</div> -->
+                          <div class="dropdown-item" value="ntlm">NTLM</div>
+                          <!-- <div class="dropdown-item" value="apikey">API Key</div> -->
+                          <!-- <div class="dropdown-item" value="akami">Akamai EdgeGrid</div> -->
+                          <!-- <div class="dropdown-item" value="asap">ASAP (Atlassian)</div> -->
+                        </div>
+                      </div>
+                    </div>
+                    <div id="auth_right_side">
+                      
+                      <div class="tabpanel" id="auth_panel_inherit">
+                        <!-- Inherit -->
+                        <label class="auth_input_label">The auth settings are inherited from the parent element</label>
+                        <br>
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_none">
+                        <!-- None -->
+                        <label class="auth_input_label">The auth isn't required</label>
+                        <br>
+                      </div>
+
+
+                      <div class="tabpanel" id="auth_panel_basic">
+                        <!-- Basic -->
+                        <label class="auth_input_label">Username: <input type="text" class="username_input auth_input"></label>
+                        <label class="auth_input_label">Password: <input type="text" class="password_input auth_input"></label>
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_bearer">
+                        <label class="auth_input_label">Token: <textarea id="bearer_token_input" class="token_input auth_input"></textarea></label>
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_jwt">
+                        JWT token
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_digest">
+                        Digest
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_oauth1">
+                        OAuth1
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_oauth2">
+                        OAuth2
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_hawk">
+                        Hawk
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_aws">
+                        AWS
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_ntlm">
+                        <label class="auth_input_label">Username:    <input type="text" class="username_input auth_input"></label>
+                        <label class="auth_input_label">Password:    <input type="text" class="password_input auth_input"></label>
+                        <label class="auth_input_label">Domain:      <input type="text" class="domain_input auth_input"></label>
+                        <label class="auth_input_label">Workstation: <input type="text" class="workstation_input auth_input"></label>
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_apikey">
+                        API key
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_akami">
+                        Akami
+                      </div>
+
+                      <div class="tabpanel" id="auth_panel_asap">
+                        ASAP (Atlassian)
+                      </div>
+                      
+                    </div>
+                  </div>                  
+                </div>
+
+                <div id="request_headers" class="tabpanel">
+                  <table id="headers_table" class="request_params_table">
+                    <tr>
+                      <th>✅</th>
+                      <th>Key</th>
+                      <th>Value</th>
+                      <th>Description</th>
+                      <th>🗑️</th>
+                    </tr>
+                    <tr class="hidden">
+                      <td colspan="5">
+                        <button class="add_row_button">+</button>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+    
+                <div id="request_body" class="tabpanel">
+                  <div id="request_b_data" class="tabview">
+
+                    <div id="request_body_tabbar" class="tabbar">
+                      <label><input type="radio" name="request_params_tabbar_body" value="none"                  class="tab_header_button" checked >none</label>
+                      <label><input type="radio" name="request_params_tabbar_body" value="form-data"             class="tab_header_button"         >form-data</label>
+                      <label><input type="radio" name="request_params_tabbar_body" value="x-www-form-urlencoded" class="tab_header_button"         >x-www-form-urlencoded</label>
+                      <label><input type="radio" name="request_params_tabbar_body" value="raw"                   class="tab_header_button"         >raw</label>
+                      <label><input type="radio" name="request_params_tabbar_body" value="binary"                class="tab_header_button"         >binary</label>                  
+                      
+                        <div class="dropdown">
+                          <button class="dropbtn" id="body_type_select" value="application/ld+json" editor="body_editor">
+                            JSON
+                          </button>
+                          <div class="dropdown-content">
+                            <div class="dropdown-item" value="text">Text</div>
+                            <div class="dropdown-item" value="javascript">JavaScript</div>
+                            <div class="dropdown-item" value="application/ld+json">JSON</div>
+                            <div class="dropdown-item" value='html'>HTML</div>
+                            <div class="dropdown-item" value="xml">XML</div>
+                          </div>                          
+                        </div>
+                        <button id="beautify_raw_data_body" class="right_floater" editor="body_editor" syntax_type_selector="body_type_select">
+                          Beautify
+                        </button>
+                    </div>            
+
+                    <div id="request_b_none" class="tabpanel">
+                      <div>No body means no issues. Or does it?</div>
+                    </div>
+    
+                    <div id="request_b_form-data" class="tabpanel">
+                      <table id="form-data_table" class="request_params_table">
+                        <tr>
+                          <th>✅</th>
+                          <th>Key</th>
+                          <th>Value</th>
+                          <th>Description</th>
+                          <th>🗑️</th>
+                        </tr>
+                        <tr class="hidden">
+                          <td colspan="5">
+                            <button class="add_row_button">+</button>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+    
+                    <div id="request_b_x-www-form-urlencoded" class="tabpanel">
+                      <table id="x-www-form-urlencoded_table" class="request_params_table">
+                        <tr>
+                          <th>✅</th>
+                          <th>Key</th>
+                          <th>Value</th>
+                          <th>Description</th>
+                          <th>🗑️</th>
+                        </tr>
+                        <tr class="hidden">
+                          <td colspan="5">
+                            <button class="add_row_button">+</button>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+    
+                    <div id="request_b_raw" class="tabpanel">
+                      <!--======================= code mirror stuff ========================-->
+                      <div class="editor-container">
+                        <textarea tabindex='1' id="raw_request_body_data"></textarea>
+                      </div>
+                      <!--======================= code mirror stuff ========================-->
+        
+                    </div>
+    
+                    <div id="request_b_binary" class="tabpanel">
+                      <input type="file" id="body_binary_file_input">
+                    </div>
+                  </div>  
+                </div>
+  
+                <div id="request_scripts" class="tabpanel">
+                  <span>Scripts</span>
+                </div>
+    
+                <div id="request_settings" class="tabpanel">
+                  <span>Settings</span>
+                </div>
+                  
+              </div>               
+            </div>
+          
+            <!-------------------------- responce wrapper -------------------------->
+            <div id="response_body_wrapper">
+              <div id="response_params_tabview" class="tabview">
+
+                <div id="response_params_tabbar" class="tabbar">
+                  <label><input type="radio" name="response_params_tabbar" value="res_body"         class="tab_header_button" checked >Body</label>
+                  <label><input type="radio" name="response_params_tabbar" value="res_cookies"      class="tab_header_button"         >Cookies</label>
+                  <label><input type="radio" name="response_params_tabbar" value="res_headers"      class="tab_header_button"         >Headers</label>
+                  <label><input type="radio" name="response_params_tabbar" value="res_test_results" class="tab_header_button"         >Test Results</label>
+                  <div class="right_floater" id="request_meta">
+                    <span id="network_info">🌍</span>
+                    <span id="status_info">Status: </span>
+                    <span id="timespan_info">Time: </span>
+                    <span id="request_size_info">Size: </span>
+                  </div>
+                </div>            
+
+                <div id="response_res_body" class="tabpanel">
+                  <div id="response_params_tabview" class="tabview">
+                    <div id="response_body_tabbar" class="tabbar">
+                      <label><input type="radio" name="response_params_tabbar_body" value="pretty"   class="tab_header_button" checked >Pretty</label>
+                      <label><input type="radio" name="response_params_tabbar_body" value="raw"      class="tab_header_button"         >Raw</label>
+                      <label><input type="radio" name="response_params_tabbar_body" value="preview"   class="tab_header_button"         >Preview</label>
+                      <label><input type="radio" name="response_params_tabbar_body" value="visualize" class="tab_header_button"         >Visualize</label>
+                      
+                      <div class="dropdown">
+                        <button class="dropbtn" id="response_body_type_select" value="application/ld+json" editor="response_editor">
+                          JSON
+                        </button>
+                        <div class="dropdown-content">
+                          <div class="dropdown-item" value="text">Text</div>
+                          <div class="dropdown-item" value="javascript">JavaScript</div>
+                          <div class="dropdown-item" value="application/ld+json">JSON</div>
+                          <div class="dropdown-item" value='html'>HTML</div>
+                          <div class="dropdown-item" value="xml">XML</div>
+                        </div>                          
+                      </div>
+                    
+                      <!-- need to autoclick this on_select -->
+                      <button id="beautify_raw_data_response" editor="response_editor" syntax_type_selector="response_body_type_select">
+                        Beautify
+                      </button>
+                    </div>
+                    <div id="response_body_pretty" class="tabpanel">
+                      <!--======================= code mirror stuff ========================-->
+                      <div class="editor-container">
+                        <textarea tabindex='1' id="pretty_response_body_data"></textarea>
+                      </div>
+                      <!--======================= code mirror stuff ========================-->
+                    </div>
+                    <div id="response_body_raw" class="tabpanel">                    
+                      <textarea tabindex='1' id="raw_response_body_data"></textarea>                    
+                    </div>
+                    <div id="response_body_preview" class="tabpanel">                    
+                      <iframe id="preview_response_body_data"></iframe>                    
+                    </div>
+                    <div id="response_body_visualize" class="tabpanel">
+                      Visualizer!                    
+                    </div>
+                  </div>  
+
+
+
+                </div>
+
+                <div id="response_res_cookies" class="tabpanel">
+                  <table id="response_cookies_table" class="response_params_table">
+                    <tr>
+                      <th>Name</th>
+                      <th>Value</th>
+                      <th>Domain</th>
+                      <th>Path</th>
+                      <th>Expires</th>
+                      <th>HttpOnly</th>
+                      <th>Secure</th>
+                    </tr>
+                  </table>
+                </div>
+
+                <div id="response_res_headers" class="tabpanel">
+                  <table id="response_headers_table" class="response_params_table">
+                    <tr>
+                      <th>Key</th>
+                      <th>Value</th>
+                    </tr>
+                  </table>
+                </div>
+                <div id="response_res_test_results" class="tabpanel">
+                  Test Results go here?
+                </div>
+
+              </div>               
+            </div>
+            <!-------------------------------------------------------------------->
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <label><input type="checkbox"> Console</label>
+      </div>
+    </div>
+
+
+    <div class="popup_wrapper" id="app_about">
+      <div class="popup">
+        <h2>Tazik2: Reimplemented and Rebuilt</h2>
+        <hr>
+        <br>
+        <div class="bottom_dweller_wrapper">
+          Tazik is a REST API test suit built upon Tauri (Rust + system WebView) from a desire to bring 
+          a trully cross-platform tool that has all the exact 
+          same features on every supported platform:
+          <div><div><ul>
+            <li>Windows</li>
+            <li>Linux</li>
+            <li>MacOS</li>
+            <li>Android</li>
+            <li>iOS</li>
+          </ul></div></div>
+          <br>
+          <div class="bottom_dweller">
+            Every version has <i>the same</i> codebase, sports no ads, and runs natively in said environment.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="popup_wrapper" id="app_special_thanks">
+      <div class="popup">
+        <h2>Special thanks</h2>
+        <hr>
+        <div class="bottom_dweller_wrapper">
+          There are many resources I've used to build Tazik, but <i>some are more equal than the rest.</i>
+          Thus, I'm listing the projects below to thank their authors for giving me ideas or, in some cases, 
+          for providing a ready-to-integrate solution:
+          <div><div><ul>
+          <li><a href="https://www.cssscript.com/resizable-split-layout/">[MIT] Resizeable Split</a></li>
+          <li><a href="https://www.cssscript.com/accessible-dropdown-nav/">[MIT] Clicky Menus</a></li>
+          <li><a href="https://github.com/beautifier/js-beautify">[MIT] js-beautify*</a></li>
+          <li><a href="https://github.com/highlightjs/highlight.js">[BSD] highlight.js</a></li>
+          </ul></div></div>          
+          <div class="bottom_dweller">Only entries marked with an * are <i>actually used</i> in this project</div>
+        </div>
+      </div>
+    </div> 
+    
+    <div class="popup_wrapper" id="app_licenses">
+      <div class="popup">
+        <div>
+        <h2>Licenses</h2>
+        <hr>
+        </div>
+        <div>
+          <div>MIT License</div>
+
+          <div>Copyright (c) 2019 Tom Rawlings</div>
+
+          <div>Permission is hereby granted, free of charge, to any person obtaining a copy
+            of this software and associated documentation files (the "Software"), to deal
+            in the Software without restriction, including without limitation the rights
+            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            copies of the Software, and to permit persons to whom the Software is
+            furnished to do so, subject to the following conditions:</div>
+
+          <div>The above copyright notice and this permission notice shall be included in all
+            copies or substantial portions of the Software.</div>
+
+          <div>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.</div>
+          </div>
+          </div>
+    </div>
+
+
+
+    <script src="./code_editors.js" ></script>  
+    <script src="./main.js" ></script>  
+    <link rel="stylesheet" href="./my.styles.css" />    
+    <style id="animations"></style>
+
+
+  </body>
+</html>
+
+

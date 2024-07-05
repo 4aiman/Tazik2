@@ -1,0 +1,75 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "path:default",
+    "event:default",
+    "window:default",
+    "app:default",
+    "image:default",
+    "resources:default",
+    "menu:default",
+    "tray:default",
+    "shell:allow-open",
+    "fs:read-all",
+    "fs:write-all",
+    {
+      "identifier": "fs:write-all",
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:read-all",
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
+    },
+    "fs:scope-applocaldata",
+    "fs:scope-applocaldata-index",
+    "fs:scope-applocaldata-recursive",
+    "fs:allow-applocaldata-meta",
+    "fs:allow-applocaldata-meta-recursive",
+    "fs:allow-applocaldata-read",
+    "fs:allow-applocaldata-read-recursive",
+    "fs:allow-applocaldata-write",
+    "fs:allow-applocaldata-write-recursive",
+    "http:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "http://**"
+        },
+        {
+          "url": "https://**"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*:*"
+        }
+      ]
+    },
+    "process:default",
+    "websocket:default",
+    "process:allow-exit",
+    "dialog:default",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:default",
+    "os:allow-version",
+    "os:allow-platform",
+    "os:allow-os-type",
+    "os:allow-arch"
+  ]
+}
