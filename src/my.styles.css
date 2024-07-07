@@ -554,6 +554,10 @@ input:not(input[type="text"]) {
 }
 
 /* responce code preview */
+.editor-container * {
+  user-select: none;
+}
+
 .editor-container {
   width: calc(100% - 5pt);
   height: calc(100% - 5pt);

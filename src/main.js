@@ -2,6 +2,7 @@ const app = {} // this is the app, it'll contain every possible thing about the 
 app.invoke = window?.__TAURI__?.core?.invoke
 app.fetch = window?.__TAURI__?.http?.fetch //|| fetch.bind(window)
 app.clipboard = window?.__TAURI__?.clipboardManager
+app.fileExists = window?.__TAURI__?.fs?.exists
 app.readTextFile = window?.__TAURI__?.fs?.readTextFile
 app.writeTextFile = window?.__TAURI__?.fs?.writeTextFile
 app.process = window?.__TAURI__?.process
@@ -42,6 +43,10 @@ async function greet() {
   // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
   greetMsgEl.textContent = await app.invoke("greet", { name: greetInputEl.value });
 }
+
+
+
+
 
 // window.addEventListener("DOMContentLoaded", () => {
 //   greetInputEl = document.querySelector("#greet-input");
@@ -112,9 +117,9 @@ function build_request_url(){
     let enabled = inputs[(i*5)].checked
     let key     = inputs[(i*5)+1].value
     let value   = inputs[(i*5)+2].value
-    if (enabled) {
+    if (enabled) {// need to save disabled as well... somehow
       if (key) {
-        console.log(i, inputs[(i*5)+1].value, inputs[(i*5)+2].value, inputs[(i*5)+3].value)
+        //console.log(i, inputs[(i*5)+1].value, inputs[(i*5)+2].value, inputs[(i*5)+3].value)
         if (value) {
           result.push(inputs[(i*5)+1].value + "=" + inputs[(i*5)+2].value)
         } else {
@@ -133,7 +138,7 @@ function build_request_url(){
     // key && value === 0, and thus falsy (description misn't necessary)
     if (!(key && value)) {
       if (window.getComputedStyle(delete_butt).display != "none") {
-        delete_row(inputs[(i*5)])
+        delete_row(null, inputs[(i*5)])
       }      
     }
   }
@@ -196,12 +201,30 @@ async function build_request() {
   let auth_panel =  document.getElementById('auth_panel_'+auth_type)
   let auth_inputs = auth_panel.getElementsByClassName("auth_input")
 
+  let user
+  let password
+  let token
+  let domain
+  let workstation
+
   let result = {}
 
   result.url          = build_request_url()
+  result.base_url     = result.url.split("?")[0]
   result.timeout      = 30
   result.headers      = build_request_headers()
   result.method       = method
+  result.auth_type    = auth_type
+  result.query_params = {}
+
+  let [url, params] = result.url.split("?")
+  for (let param of (params || "").split("&")) {
+    console.log(param)
+    let [key, value] = param.split("=")
+    result.query_params[key] = value
+  }
+
+
 
   // process authentication   
   switch (auth_type) {
@@ -210,8 +233,6 @@ async function build_request() {
     break
 
     case "basic":
-      let user
-      let password
       for (let input of auth_inputs) {
         if (input.classList.contains("username_input")) {
           user = input.value
@@ -223,12 +244,14 @@ async function build_request() {
 
       if (user && password) {
         let token = user + ":" + password
-        result.headers.Authorization = 'Basic '+btoa(token)
+        result.headers.Authorization = 'Basic '+btoa(token)        
       }
+
+      result.user = user
+      result.password = password      
     break
 
     case "bearer":
-      let token
       for (let input of auth_inputs) {
         if (input.classList.contains("token_input")) {
           token = input.value
@@ -237,9 +260,25 @@ async function build_request() {
       if (token) {        
         result.headers.Authorization = 'Bearer '+token
       }
+      result.token = token
     break
 
     case "ntlm":
+      for (let input of auth_inputs) {
+        if (input.classList.contains("username_input")) {
+          user = input.value
+        }
+        if (input.classList.contains("password_input")) {
+          password = input.value
+        }
+        if (input.classList.contains("domain_input")) {
+          user = input.value
+        }
+        if (input.classList.contains("token_input")) {
+          password = input.value
+        }
+      }
+
     break
 
     default:
@@ -258,6 +297,8 @@ async function build_request() {
     }
   }
 
+  result.body_type = body_type
+  
   switch(body_type) {
     case "form-data" :
       // this is not a result, this is only a JSON object with everything necessary in it
@@ -307,6 +348,8 @@ async function send_request() {
 
   // the request itself is built in here
   let request = await build_request() // fucking blobs made me do this
+  console.log(request)
+  
   app.current_request = JSON.parse(JSON.stringify(request))
 
   let url = request.url
@@ -320,7 +363,7 @@ async function send_request() {
   request.headers["Accept-Encoding"] = request.headers["Accept-Encoding"] || "gzip, deflate, br"
   request.headers.Connection = request.headers.Connection || "keep-alive"
   
-  write_request_file(app.current_tab)
+  await write_request_file(app.current_tab)
 
   // oauth
   /*
@@ -408,6 +451,12 @@ function CallWebAPI() {
   let response_table = document.getElementById("response_headers_table")
   response_table.innerHTML = "<tr><th>Key</th><th>Value</th></tr>"
   
+  for (let i in window.sessionStorage) {
+    let item = window.sessionStorage[i]
+    //console.log(item)
+  }
+  //console.log(window.sessionStorage.length)
+
   if (result1) {
     let response_headers = {}
     for (let pair of result1.headers.entries()) {
@@ -420,9 +469,10 @@ function CallWebAPI() {
       tr.appendChild(td1)
       tr.appendChild(td2)
       response_table.appendChild(tr)
+      //console.log(pair)
   }
   
-    console.log(result1.headers.get('set-cookie'))
+    //console.log(result1.headers.get('set-cookie'))
   //for (let pair of result1.headers.get('set-cookie')) {
   //  console.log(pair)
   //}
@@ -474,7 +524,7 @@ function CallWebAPI() {
 
     let body_length = code.length
     let headers_length = JSON.stringify(response_headers).length
-    console.log("body_length", body_length, "headers_length", headers_length)
+    //console.log("body_length", body_length, "headers_length", headers_length)
 
     network_info.innerHTML      = ['🌍'].join(" ")
     status_info.innerHTML       = ["Status:", "<span class='green'>", result1.status, result1.statusText,'</span>'].join(" ")
@@ -522,7 +572,7 @@ function code_beautify(source, mode) {
   }
   switch (mode) {
     case "xml":
-      console.log('sorting as XML')
+      //console.log('sorting as XML')
       
       let xml = new DOMParser().parseFromString(source, 'application/xml');
       var sorting_params = new DOMParser().parseFromString([
@@ -645,10 +695,12 @@ function enable_row() {
 
 }
 
-function delete_row(element) {    
+function delete_row(event, element) {    
+  //console.log("removing row", this, element)
   // find a row *this* button is from
   let row = element || this
-  while (!(row.tagName.toLowerCase() == "tr")) {    
+  while (!(row?.tagName?.toLowerCase() == "tr")) {    
+    //console.log("row",row, row?.tagName)
     row = row.parentElement
   }
 
@@ -721,10 +773,11 @@ function add_row2(event, element) {
 }
 
 function add_row(event, element, data) {
+  console.log("adding row", data)
   let table = element || this
 
   while (!table.classList.contains("request_params_table")) {
-    console.log(table.parentElement)
+    //console.log(table.parentElement)
     table = table.parentElement
   }
 
@@ -746,8 +799,15 @@ function add_row(event, element, data) {
     // inputs: checkbox, 3*text, button (not an input)
     if (tds[1].value != "" && tds[2].value != "") {
     } else {
-      return
+      // prevents addition of new empty rows upon key press
+      if (!data) {
+        console.log("here?")
+
+        return
+      }
     }
+  } else {
+    
   }
 
   let tr = document.createElement('tr')
@@ -790,30 +850,34 @@ function add_row(event, element, data) {
   tr.appendChild(td3)
   tr.appendChild(td4)
   tr.appendChild(td5)
-  table.insertBefore(tr, table.children[table.children.length])
-
+  table.appendChild(tr)
+  
   if (data) {
     console.log("data", data)
     ed1.value  = data.key || ""
     ed2.value  = data.value || ""
     ed3.value  = data.descpription || ""  
     cb.checked = data.enabled || false
-    let event  = new Event('keyup')
-    ed1.dispatchEvent(event);
+    // this is needed because when I manually enter stuff, it add a new row below the current one
+    // but when I call this from the code, it inserts empty rows after each `data`
+    if (!data.prevent_addition_of_a_new_row) {
+      let event  = new Event('keyup')
+      ed1.dispatchEvent(event);
+    }
   }
 
 }
 
-function option_selected() {
-  let combobox = this  
+function option_selected(event, element) {
+  let combobox = element || this  
   while (!(combobox.classList?.contains('dropdown'))) {
     combobox = combobox.parentElement
   }  
   let button = combobox.getElementsByClassName('dropbtn')[0]
   let menu = combobox.getElementsByClassName('dropdown-content')[0] || combobox.getElementsByClassName('dropdown-content-replace')[0]
-  let style = window.getComputedStyle(this)
+  let style = window.getComputedStyle(element || this)
   let color = style.getPropertyValue('color')
-  button.value = this.getAttribute('value')
+  button.value = (element || this).getAttribute('value')
   if (~button.id.indexOf("body_type_select")) {
     let editor = window.exports[button.getAttribute('editor')]
     console.log('settings mode', button.value)
@@ -845,7 +909,7 @@ function option_selected() {
     show_auth_tab(button.value)
   } 
 
-  button.textContent = this.textContent
+  button.textContent = (element || this).textContent
   menu.style.display = 'none'
 }
 
@@ -856,7 +920,7 @@ function open_combobox() {
   }  
 
   let opened = (JSON.parse(combobox.getAttribute('opened')))
-  console.log(opened)
+  //console.log(opened)
   if (opened) {
     let menu = combobox.getElementsByClassName('dropdown-content')[0] || combobox.getElementsByClassName('dropdown-content-replace')[0]
     // menu_items might not be there if there's no submenu
@@ -1040,41 +1104,85 @@ function init_popups() {
   }
 }
 
-function keyboard_shortcuts_handler(event) {
-  console.log(event)
-    if (event.ctrlKey && event.key === 'KeyS') {
+async function keyboard_shortcuts_handler(event) {
+  //console.log(event)  
+    if (event.ctrlKey && event.code === 'KeyS') {
      // save current request
+     let request = await build_request()
+     app.current_request = JSON.parse(JSON.stringify(request))
+     await write_request_file(app.current_tab)
      
-   } else if (event.ctrlKey && event.key === "Enter") {
+   } else if (event.ctrlKey && event.code === "Enter") {
      // run qurent request
-     send_request()
+     await send_request()
    }
 }
 
 
 function handle_buttons(self) {
-  console.log(self.id)
+  //console.log(self.id)
 }
 
-
-async function write_request_file(request_id) {
-  console.log("writing " + request_id + '.json')
-  try {
-    await app.writeTextFile(request_id + '.json', JSON.stringify(app.current_request, null, 2), { baseDir: 15 }) // localappdata
-  } catch(err) {
-    console.log('333', err)
+function set_modified(id, yes) {
+  let button = document.getElementById(id)
+  //console.log(button)
+  if (yes) {
+    // make tab appear modified    
+    button.setAttribute("modified", true)  
+  } else {
+    // make tab appear unmodified
+    button.setAttribute("modified", false)
   }
-  // this ^ never returns anything
+}
+
+async function write_request_file(request_id, is_modified) {
+  if (request_id) {    
+    try {
+      // I have 2 files: tmp_ and the regular one
+      let filename = request_id + '.json'      
+      if (is_modified) {
+        // if modified, then write only to the _tmp one
+        filename = "tmp_" + filename
+        console.log("writing " + filename)
+        await app.writeTextFile(filename, JSON.stringify(app.current_request, null, 2), { baseDir: 15 }) // localappdata
+      } else {
+        // if NOT modified (i.e. saved), saving goes to BOTH files (since we first read the tmp file)
+        console.log("writing " + filename)
+        await app.writeTextFile(filename, JSON.stringify(app.current_request, null, 2), { baseDir: 15 }) // localappdata
+        filename = "tmp_" + filename
+        console.log("writing " + filename)
+        await app.writeTextFile(filename, JSON.stringify(app.current_request, null, 2), { baseDir: 15 }) // localappdata
+      }
+      // RESULT: the _tmp file is always saved and loaded first
+      //         permanent changes go to the ergular file (the one eventually shared across dvices)
+      set_modified(request_id, is_modified)
+    } catch(err) {
+      console.log('can\'t write file', err)
+    }
+    // this ^ never returns anything
+  } else {
+    console.log("Can't write the file, as request_id is undefined")
+  }
 }
 
 async function read_request_file(request_id) {
   console.log("reading " + request_id + '.json')
   try {
-    let data = await app.readTextFile(request_id + '.json', { baseDir: 15 })
-    console.log(data)
-    return JSON.parse(data)  
+    let filename = request_id + '.json'
+    let data
+    try {
+       data = await app.readTextFile("tmp_"+filename, { baseDir: 15 })
+    } catch(err) {
+      try {
+        data = await app.readTextFile(filename, { baseDir: 15 })
+      } catch(err) {        
+      }
+    }
+    console.log("read file contents:" + data)
+    let result = JSON.parse(data) // if data is null, this will fail and catch() will fire
+    return  result
   } catch(err) {
-    console.log('333', err)
+    console.log( err)
   }
 }
 
@@ -1110,8 +1218,22 @@ function main_scroll_tabbar_wheel(event) {
 
 
 
-function request_tab_click(event) {
+async function request_tab_click(event) {
+  console.log("CLICKED!!!!!!!!!!") 
+  let request = await build_request()
+  app.current_request = JSON.parse(JSON.stringify(request))
+
+  let current_tab = document.getElementById(app.current_tab)
+  let is_modified = JSON.parse(current_tab.getAttribute("modified"))
+  //console.log("setting modified inside tab_click", is_modified) 
+  if (is_modified) { // true/false shenanigans
+    await write_request_file(app.current_tab, true)
+  } else {
+    await write_request_file(app.current_tab)
+  }
   
+
+
   if ((this.scrollWidth - event.offsetX < 25*1.34) || event.target.classList.contains('close_button')) {    
     let opened_tabs = []
     for (let tid of app.opened_tabs) {      
@@ -1123,27 +1245,27 @@ function request_tab_click(event) {
     this.remove()
   } else {
     let tab_id = this.id
-    console.log("^^^^^^^^^^^^^^^^^^^^^^")
-    console.log("tab_id", tab_id)
-    console.log("app.opened_tabs", app.opened_tabs)
-    
+    //console.log("^^^^^^^^^^^^^^^^^^^^^^")
+    //console.log("tab_id", tab_id)
+    //console.log("app.opened_tabs", app.opened_tabs)
+   
     for (let tid of app.opened_tabs) {
-      console.log("tid", tid)
+      //console.log("tid", tid)
       if (tab_id == tid) {
         app.current_tab = tid
         break 
       }
     }
-    console.log("vvvvvvvvvvvvvvvvvvvvvv")
+    //console.log("vvvvvvvvvvvvvvvvvvvvvv")
   }
   
-  manage_tab_history() // this also manages file reading/writing
+  await manage_tab_history() // this also manages file reading/writing
 
   adjust_main_tabbar_buttons()
 
 }
 
-function manage_tab_history() {
+async function manage_tab_history(new_tab) {
   // unconditionally add current tab to the history  
 
   app.tab_history.push(app.current_tab)
@@ -1158,27 +1280,27 @@ function manage_tab_history() {
   let tmp_history = []
   let last_added
   for (let hid of app.tab_history) {
-    console.log("hid", hid)
+    //console.log("hid", hid)
     for (let tid of tabs) {
-      console.log("tid", tid, tid == hid)
+      //console.log("tid", tid, tid == hid)
       if (tid == hid) {
         if (last_added != hid) {
           tmp_history.push(hid)
           last_added = hid
         } else {
-          console.log("removed duplicate item", hid)  
+          //console.log("removed duplicate item", hid)  
         }
-        console.log("break")
+        //console.log("break")
         break
       } 
     }
   }
-  console.log("tmp_history", tmp_history)
+  //console.log("tmp_history", tmp_history)
   app.tab_history = tmp_history
   let tab_id = tmp_history[tmp_history.length - 1]
   
   for (let tid of app.opened_tabs) {
-    console.log(tab_id, tid)
+    //console.log(tab_id, tid)
     if (tid == tab_id) {
       app.current_tab = tid
       break 
@@ -1186,15 +1308,145 @@ function manage_tab_history() {
   }
 
   // whatever in that file gets into current request data structure (and I can expect this to alvays be there)
-  app.current_request = read_request_file(app.current_tab)
-  
+  if (!new_tab) {
+    try {
+      app.current_request = await read_request_file(app.current_tab)
+      console.log("app.current_request", app.current_request)
+    } catch(err) {
+      // this is fine if there's no file to read (i.e. it's a new tab)
+      console.log(err)
+    }
+  } else {
+    app.current_request = build_empty_request()
+  }  
+  // fills UI with data from the file
+  fill_in_forms()
 }
+
+function build_empty_request() {
+  let result = {
+    method : "GET",
+    url : "",
+    base_url : "",
+    query_params : {},
+    headers : [],
+    auth_type : "none",
+    body_type : "none",
+    scripts : {
+      pre : "",
+      post : ","
+    }
+  }
+  return result
+}
+
+function fill_in_forms() {  
+  if (app.current_request) {//
+    console.log('filling forms with',app.current_request)
+
+
+    let container = document.getElementById("request_body_wrapper")
+    let tables = container.getElementsByClassName("request_params_table")
+  
+    for (let table of tables) {
+      table.innerHTML = "<tr><th>✅</th><th>Key</th><th>Value</th><th>Description</th><th>🗑️</th></tr>" 
+      let param_count = 0
+      for (let pid in app.current_request?.query_params) {
+        param_count = param_count + 1
+      }
+    }
+    
+    // fill in headers
+    let headers_table = document.getElementById("headers_table")
+    for (let hid in app.current_request.headers) {
+      add_row(null, headers_table, {key: hid, value: app.current_request.headers[hid], enabled: true}) 
+    }
+
+    let query_params_table = document.getElementById("query_params_table")
+    console.log("add rows start =========================")
+    
+    for (let qpid in app.current_request.query_params) {
+      console.log(qpid, app.current_request.query_params[qpid])
+      add_row(null, query_params_table, {key: qpid, value: app.current_request.query_params[qpid], enabled: true, prevent_addition_of_a_new_row : true}) 
+    }
+    console.log("add rows end ===========================")
+
+    let metod_select = document.getElementById("metod_select")
+    metod_select.value = app.current_request.method || ""
+
+    let url_input = document.getElementById("url_input")
+    url_input.value = app.current_request.base_url || ""
+
+    let auth_type_select = document.getElementById("auth_type_select")
+    let items = auth_type_select.parentElement.getElementsByClassName("dropdown-item")
+    //console.log("items",items)
+    for (let item of items) {      
+      if (item.getAttribute("value") == app.current_request.auth_type) {
+        //console.log("clicking",item)
+        option_selected(null, item)
+        break
+      }
+    }
+    auth_type_select.value = app.current_request.auth_type
+
+
+    ///===============================================================================
+    let auth_panel =  document.getElementById('auth_right_side')
+    let auth_inputs = auth_panel.getElementsByClassName("auth_input")
+
+    
+    for (let input of auth_inputs) {
+      if (input.classList.contains("username_input")) {
+        input.value = app.current_request.user || ""
+        //console.log("setting username",input.id)
+      }
+      if (input.classList.contains("password_input")) {
+        input.value = app.current_request.password || ""
+        //console.log("setting password",input.id)
+      }
+      if (input.classList.contains("token_input")) {
+        input.value = app.current_request.token || ""
+        //console.log("setting token",input.id)
+      }
+      if (input.classList.contains("domain_input")) {
+        input.value = app.current_request.domain || ""
+        //console.log("setting domain",input.id)
+      }
+      if (input.classList.contains("workstation_input")) {
+        input.value = app.current_request.workstation || ""
+        //console.log("setting workstation",input.id)
+      }
+    }
+
+
+  
+    // process body
+    let request_body_tabbar = document.getElementById('request_body_tabbar')
+    let radios = request_body_tabbar.getElementsByClassName('tab_header_button')
+    for (let radio of radios) {
+      if (radio.value == app.current_request.body_type) {
+        radio.click()
+      }
+    }
+
+    for (let table of tables) {
+        add_row(null, table)
+    }
+  
+    ///===============================================================================
+    
+
+  } else {
+    console.log('can\'t fill anything as app.current_request is empty')
+  }
+}
+
 
 function adjust_main_tabbar_buttons() {
   let request_bar_scroll_area = document.getElementById('request_bar_scroll_area')
   let enable_scroll_buttons = request_bar_scroll_area.scrollWidth > (document.getElementById('request_area').clientWidth - 150)
 
-  console.log(enable_scroll_buttons)
+  //console.log(enable_scroll_buttons)
 
   let request_row_right_button = document.getElementById('request_row_right_button')
   let request_row_left_button  = document.getElementById('request_row_left_button')
@@ -1260,7 +1512,21 @@ function window_resize_trigger() {
 
 
 
-function add_request() {
+async function add_request() {
+  if (app.current_tab) {
+    let request = await build_request()
+    app.current_request = JSON.parse(JSON.stringify(request))
+
+    let current_tab = document.getElementById(app.current_tab)
+    let is_modified = JSON.parse(current_tab.getAttribute("modified"))
+    //console.log("setting modified inside tab_click", is_modified) 
+    if (is_modified) { // true/false shenanigans
+      await write_request_file(app.current_tab, true)
+    } else {
+      await write_request_file(app.current_tab)
+    }
+  }
+  
   let request_id = crypto.randomUUID()
   let request_name = "New Request" //+ " " + app.opened_tabs.length
   
@@ -1269,6 +1535,7 @@ function add_request() {
 
   for (let table of tables) {
     table.innerHTML = "<tr><th>✅</th><th>Key</th><th>Value</th><th>Description</th><th>🗑️</th></tr>" 
+    console.log("add request")
     add_row(null, table)
   }
 
@@ -1278,16 +1545,15 @@ function add_request() {
   tab_button.id = request_id
   tab_button.addEventListener("click", request_tab_click)
   
-  // set modified flag, cause it's not saved
-  tab_button.setAttribute("modified", true)  
-
   app.opened_tabs.push(request_id)
   app.current_tab = request_id
   let request_bar_scroll_area = document.getElementById('request_bar_scroll_area')
   request_bar_scroll_area.scrollBy(Number.MAX_SAFE_INTEGER, 0)    
   request_bar_scroll_area.appendChild(tab_button)
+  // set modified flag, cause it's not saved
+  set_modified(request_id, true)
 
-  manage_tab_history()
+  await manage_tab_history(true) // pass true to indincate this is a new tab
   adjust_main_tabbar_buttons()
 }
 
@@ -1356,7 +1622,9 @@ function init() {
   beautify_raw_data_response.addEventListener("click", beautify_button_click);
 
   let add_request_button = document.getElementById('add_request_button')  
+  let mock_button = document.getElementById('mock_button')  
   add_request_button.addEventListener("click", add_request);
+  mock_button.addEventListener("click", add_request);
 
 
   document.addEventListener("keydown", keyboard_shortcuts_handler);
@@ -1381,15 +1649,23 @@ function init() {
 
 
 function fill_mock_data() {  
+  let container = document.getElementById("request_body_wrapper")
+  let tables = container.getElementsByClassName("request_params_table")
+
+  for (let table of tables) {
+    table.innerHTML = "<tr><th>✅</th><th>Key</th><th>Value</th><th>Description</th><th>🗑️</th></tr>" 
+    add_row(null, table)
+  }
+
   let auth_panel =  document.getElementById('auth_right_side')
   let auth_inputs = auth_panel.getElementsByClassName("auth_input")
 
   for (let input of auth_inputs) {
     if (input.classList.contains("username_input")) {
-      input.value = "ezwrk@ntrnx.ru"
+      //input.value = "ezwrk@ntrnx.ru"
     }
     if (input.classList.contains("password_input")) {
-      input.value = "7VOlvV3frvhYJhDiHNf/xh6p"
+      //input.value = "7VOlvV3frvhYJhDiHNf/xh6p"
     }
     if (input.classList.contains("token_input")) {
       input.value = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkE3QTY1NDE0OEM1MjMxRUE3QzAwRUNERDBEMTRDRjBGIiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3MjAwMTU5NzgsImV4cCI6MTc1MTU1MTk3OCwiaXNzIjoiaHR0cHM6Ly9kZW1vMS1yZWlzLmRldi5udHJueC5jb20iLCJhdWQiOiJSZWNvcmRlciIsImNsaWVudF9pZCI6IlJlY29yZGVyX1NQQSIsInN1YiI6IjQxNDUwYzQ2LTQ3ZmMtNDc1Yi1iNTRiLWE0Mzk2OWUyMzE0NiIsImF1dGhfdGltZSI6MTcyMDAxNTk3OCwiaWRwIjoibG9jYWwiLCJ0ZW5hbnRpZCI6Ijg0MWEyMjEzLTg4NWEtNGM5MS1iYzI3LWVhMzhmNjI3NDE0YiIsImVtYWlsIjoiYWRtaW5AZGVmYXVsdHRlbmFudC5jb20iLCJyb2xlIjpbImFkbWluIiwiUmVnaXN0ZXJlZFVzZXIiXSwicGhvbmVfbnVtYmVyX3ZlcmlmaWVkIjoiRmFsc2UiLCJlbWFpbF92ZXJpZmllZCI6IlRydWUiLCJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3MjAwMTU5NzgsInNjb3BlIjpbIlJlY29yZGVyIl0sImFtciI6WyJwd2QiXX0.YFaSFpTEo4KvsbHDQoooYoDNcIbLFr3x09TT0jB_pzJpl_00oIrgmc2GTzk5XNsWEl-Bq5m8quIA9VVHtwfJrJlSDjWg2MIpt-WrPD9r68BbMQNFuNjthyzfkiUvr06yANjSMbtMY-395EGRKck3g7Ro97CW_0qXdrc5GspO8yAJMdBWN_OtdK1fyUYr1Ai7TvxrGAFllMHQdBmhFvni8VZDksgv9fCaFBLkyOFpMgMyMy1L8zHc68XxIOVTLYdxG7jr90HCy1EZjOvX6C5qtiJEXqXD_2l1sASrUjG_R6oELoB07m4Q-nJ6_WH9eSpUXVksfSP0w7MaZvfC8S3jTQ"
@@ -1397,14 +1673,15 @@ function fill_mock_data() {
   }
 
   let url_input = document.getElementById("url_input")   
-  url_input.value = "https://demo1-recorder-api.dev.ntrnx.com/api/recorder/settings/notifications?api-version=1.0"
+  //url_input.value = "https://demo1-recorder-api.dev.ntrnx.com/api/recorder/settings/notifications?api-version=1.0"
   //url_input.value = "https://192.168.1.113:8443/web/save_isap_config"
   //url_input.value = "http://reconf-ad-2.dev.ntrnx.local/Ews/Exchange.asmx"
-  //url_input.value = "https://192.168.1.113:8443/api/hw-monitor"
+  url_input.value = "https://192.168.1.113:8443/api/hw-monitor"
+  //url_input.value = "https://wrong.host.badssl.com/"
 
-  let auth_type_select = document.getElementById("auth_type_select") 
-  auth_type_select.value = 'bearer'
-  auth_type_select.value = 'basic'
+  //let auth_type_select = document.getElementById("auth_type_select") 
+  //auth_type_select.value = 'bearer'
+  //auth_type_select.value = 'basic'
   
 }
 
@@ -1430,14 +1707,16 @@ function fill_mock_data() {
 
 
 async function test(){
-  try {
-    const response = await app.fetch("https://192.168.1.113:8443/api/hw-monitor");
-    console.log(response.status);  
-    console.log(response.statusText); 
-    const jsonData = await response.json();
-    console.log(jsonData)
-  } catch(err) {
-    console.log(err)
-  }
+  // try {
+  //   const response = await app.fetch("https://192.168.1.113:8443/api/hw-monitor");
+  //   console.trace("fff")
+  //   console.log(response.status);  
+  //   console.log(response.statusText); 
+  //   const jsonData = await response.json();
+  //   console.log(jsonData)
+  // } catch(err) {
+  //   console.log(err)
+  // }
+//  console.log(await app.invoke("api_post_req", { url:"https://wrong.host.badssl.com/"}));
 }
 

@@ -17,6 +17,15 @@
     "shell:allow-open",
     "fs:read-all",
     "fs:write-all",
+    "fs:allow-exists",
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        }
+      ]
+    },
     {
       "identifier": "fs:write-all",
       "allow": [
@@ -66,10 +75,10 @@
     "dialog:default",
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
-    "clipboard-manager:default",
     "os:allow-version",
     "os:allow-platform",
     "os:allow-os-type",
-    "os:allow-arch"
+    "os:allow-arch",
+    "log:default"
   ]
 }
