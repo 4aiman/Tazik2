@@ -291,7 +291,7 @@ input:not(input[type="text"]) {
 
 #auth_type_select,
 #response_body_type_select,
-#body_type_select {
+#body_mime_type_select {
   border: none;
   color: burlywood;
   height: 25pt;
@@ -299,13 +299,6 @@ input:not(input[type="text"]) {
   width: 80pt;
   position: relative;
   top: 0pt;
-}
-
-#auth_type_select::after,
-#response_body_type_select::after,
-#body_type_select::after {
- content: "▿";
- vertical-align: sub;
 }
 
 #auth_type_select {  
@@ -980,13 +973,52 @@ label, button, .treeview, .menuitem, .menu {
 }
 
 
-#body_type_select {
+#body_mime_type_select {
   height: 18pt;
   /* outline: red solid 1px; */
+}
+
+#auth_type_select:hover,
+#response_body_type_select:hover,
+#body_mime_type_select:hover {
+  color:antiquewhite;
+  background-color: transparent;
 }
 
 #enable_proxy {
   display: initial;
   width: 10pt;
   height: 10pt;
+}
+
+.dropdown[opened="false"] #auth_type_select::after,
+.dropdown[opened="false"] .dropbtn[editor]::after
+ {
+  content: "▿";
+  vertical-align: sub;
+}
+
+.dropdown[opened="true"] #auth_type_select::after,
+.dropdown[opened="true"] .dropbtn[editor]::after
+ {
+ content: "▵";
+ vertical-align: sub;
+}
+
+#body_binary_file_input_label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  padding-left: 5pt;
+}
+
+#body_binary_file_input {
+  min-width: 100pt;
+  border-radius: 5pt;
+  margin-right: 5pt;
+}
+
+#body_binary_file_input_label {
+  display: inline-block;
 }

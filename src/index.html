@@ -314,7 +314,7 @@
                       <label><input type="radio" name="request_params_tabbar_body" value="binary"                class="tab_header_button"         >binary</label>                  
                       
                         <div class="dropdown">
-                          <button class="dropbtn" id="body_type_select" value="application/ld+json" editor="body_editor">
+                          <button class="dropbtn" id="body_mime_type_select" value="application/ld+json" editor="body_editor">
                             JSON
                           </button>
                           <div class="dropdown-content">
@@ -325,7 +325,7 @@
                             <div class="dropdown-item" value="xml">XML</div>
                           </div>                          
                         </div>
-                        <button id="beautify_raw_data_body" class="right_floater" editor="body_editor" syntax_type_selector="body_type_select">
+                        <button id="beautify_raw_data_body" class="right_floater" editor="body_editor" syntax_type_selector="body_mime_type_select">
                           Beautify
                         </button>
                     </div>            
@@ -378,7 +378,7 @@
                     </div>
     
                     <div id="request_b_binary" class="tabpanel">
-                      <input type="file" id="body_binary_file_input">
+                      <label><input type="button" value="Browse..." id="body_binary_file_input" /><span id="body_binary_file_input_label">No file</span></label>
                     </div>
                   </div>  
                 </div>

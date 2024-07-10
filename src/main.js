@@ -11,6 +11,8 @@ app.name = window?.__TAURI__?.app?.getName()
 app.tversion = window?.__TAURI__?.app?.getTauriVersion()
 app.platform = window?.__TAURI__?.os?.platform()
 app.arch = window?.__TAURI__?.os?.arch()
+app.open_dialog = window?.__TAURI__?.dialog?.open
+app.save_dialog = window?.__TAURI__?.dialog?.save
 app.opened_tabs = []
 app.collections = []
 app.environments = []
@@ -161,21 +163,30 @@ function build_request_url(){
 function request_table_to_json(table_name) {  
   let table = document.getElementById(table_name)
   let inputs = table.getElementsByTagName("input")
-  let result = {}
+  let result = []
   for (let i = 0; i< inputs.length/5; i++) {
-    let enabled = inputs[(i*5)].checked
+    let on      = inputs[(i*5)].checked
     let key     = inputs[(i*5)+1].value
     let value   = inputs[(i*5)+2].value
+    let desc    = inputs[(i*5)+3].value
+    let enabled = (window.getComputedStyle(inputs[(i*5)+4]).display != "none")
+
     let counter = 0
-    if (enabled) {
-      if (key && value) {
+    if (enabled) { // ignore the last row w/o visible button
+      //if (key && value) {
           counter = counter + 1
-          result[inputs[(i*5)+1].value] = inputs[(i*5)+2].value
-      }
+          // save the checkbox, key, value, and description
+          result.push({key: key, enabled: enabled, on: on, value : value || "", description: desc || ""})
+      //}
     }
   }
   return result
 }
+
+function build_request_params() {
+  return request_table_to_json("query_params_table")
+}
+
 
 function build_request_headers() {
   return request_table_to_json("headers_table")
@@ -193,7 +204,7 @@ async function read_file_synchronyously(file) {
   return result;
 }
 
-async function build_request() {  
+async function build_request() { 
   let raw_request_body_data = document.getElementById('raw_request_body_data')
   let response_area = document.getElementById('response_body')
   let method = document.getElementById('metod_select').getAttribute('value')  
@@ -201,11 +212,6 @@ async function build_request() {
   let auth_panel =  document.getElementById('auth_panel_'+auth_type)
   let auth_inputs = auth_panel.getElementsByClassName("auth_input")
 
-  let user
-  let password
-  let token
-  let domain
-  let workstation
 
   let result = {}
 
@@ -215,116 +221,114 @@ async function build_request() {
   result.headers      = build_request_headers()
   result.method       = method
   result.auth_type    = auth_type
-  result.query_params = {}
+  result.query_params = build_request_params()
 
-  let [url, params] = result.url.split("?")
-  for (let param of (params || "").split("&")) {
-    console.log(param)
-    let [key, value] = param.split("=")
-    result.query_params[key] = value
-  }
+  // save ALL auth data in the query
+  result.auth = {}
 
+  let auth_right_side = document.getElementById('auth_right_side')
+  let panels = auth_right_side.getElementsByClassName("tabpanel")
+  let current_panel_id = "auth_panel_" + result.auth_type
 
-
-  // process authentication   
-  switch (auth_type) {
-    case "inherit":
-      // traverse the request tree till something that's not "inherit" is found
-    break
-
-    case "basic":
-      for (let input of auth_inputs) {
-        if (input.classList.contains("username_input")) {
-          user = input.value
-        }
-        if (input.classList.contains("password_input")) {
-          password = input.value
+  for (let panel of panels) {
+    let auth_inputs = panel.getElementsByClassName("auth_input")    
+    let panel_auth_type = panel.id.split("_")[2] //auth _ panel _ *basic*
+    console.log("panel.id",panel.id, panel_auth_type)
+    result.auth[panel_auth_type] = {} 
+    for (let input of auth_inputs) {
+      if (input.classList.contains("username_input")) {
+        result.auth[panel_auth_type].username = input.value
+        if (panel.id == current_panel_id) {
+          result.username = input.value
         }
       }
-
-      if (user && password) {
-        let token = user + ":" + password
-        result.headers.Authorization = 'Basic '+btoa(token)        
-      }
-
-      result.user = user
-      result.password = password      
-    break
-
-    case "bearer":
-      for (let input of auth_inputs) {
-        if (input.classList.contains("token_input")) {
-          token = input.value
+      if (input.classList.contains("password_input")) {
+        result.auth[panel_auth_type].password = input.value
+        if (panel.id == current_panel_id) {
+          result.password = input.value
         }
       }
-      if (token) {        
-        result.headers.Authorization = 'Bearer '+token
-      }
-      result.token = token
-    break
-
-    case "ntlm":
-      for (let input of auth_inputs) {
-        if (input.classList.contains("username_input")) {
-          user = input.value
-        }
-        if (input.classList.contains("password_input")) {
-          password = input.value
-        }
-        if (input.classList.contains("domain_input")) {
-          user = input.value
-        }
-        if (input.classList.contains("token_input")) {
-          password = input.value
+      if (input.classList.contains("domain_input")) {
+        result.auth[panel_auth_type].domain = input.value
+        if (panel.id == current_panel_id) {
+          result.domain = input.value
         }
       }
-
-    break
-
-    default:
-      // do nothing, "none" goes in here by default
-    break
+      if (input.classList.contains("workstation_input")) {
+        result.auth[panel_auth_type].workstation = input.value
+        if (panel.id == current_panel_id) {
+          result.workstation = input.value
+        }
+      }
+      if (input.classList.contains("token_input")) {
+        result.auth[panel_auth_type].token = input.value
+        if (panel.id == current_panel_id) {
+          result.token = input.value
+        }
+      }      
+    }
   }
   
 
   // process body
+  result.body_data = {}
   let request_body_tabbar = document.getElementById('request_body_tabbar')
   let radios = request_body_tabbar.getElementsByClassName('tab_header_button')
   let body_type = "none"
   for (let radio of radios) {
     if (radio.checked) {
       body_type = radio.value
+      break
     }
   }
 
   result.body_type = body_type
+
+
+  let request_b_data = document.getElementById("request_b_data")
+  let tabs = request_b_data.getElementsByClassName("tabpanel")
+  let body_binary_file_input = document.getElementById('body_binary_file_input')
+  let body_binary_file = body_binary_file_input.getAttribute("filename") 
+
+  result.body_data["form-data"]             = request_table_to_json("form-data_table")
+  result.body_data["x-www-form-urlencoded"] = request_table_to_json("x-www-form-urlencoded_table")
+  result.body_data["raw"]                   = body_editor.getValue()
+  // binary data itself won't be saved/loaded by deafult, as this project isn't about sharing files
+  result.body_data["binary"]                = {filename: body_binary_file, data: null}
   
-  switch(body_type) {
-    case "form-data" :
-      // this is not a result, this is only a JSON object with everything necessary in it
-      //result.body = request_table_to_json("form-data_table")
-    break
-
-    case "x-www-form-urlencoded" :
-      // this is not a result, this is only a JSON object with everything necessary in it
-      //result.body = request_table_to_json("x-www-form-urlencoded_table")      
-    break
-
-    case "raw" :
-      result.body = body_editor.getValue()
-    break
-
-    case "binary" :
-      let body_binary_file_input = document.getElementById('body_binary_file_input')
-      let body_binary_file = body_binary_file_input.files[0]
+  // load the file fron a local source every time it's needed. yeah, I knowm this is slow
+  if (body_type == "binary") {      
+     console.log(body_binary_file)
       result.body = await read_file_synchronyously(body_binary_file)
-    break
-
-    default:
-    break
+      // NEVER do this, as this will store the entire file into your request!
+      // result.body_data["binary"].data = result.body
   }
 
-  console.log("resul", result)
+  // needs adjustments
+  let body_mime_type_select = document.getElementById("body_mime_type_select")
+  switch(body_mime_type_select.value) {
+    case "text": 
+      result.body_mime_type = "text/plain"
+    break
+    case "javascript": 
+      result.body_mime_type = "text/javascript"
+    break
+    case "html": 
+      result.body_mime_type = "text/html"
+    break
+    case "xml": 
+      result.body_mime_type = "application/xml"
+    break
+    case "application/ld+json": 
+      result.body_mime_type = "application/json"
+    break
+    default:
+      result.body_mime_type = "text/plain"
+    break
+  }
+   
+
+  console.log("request built ", result)
 
   return result
 }
@@ -347,14 +351,16 @@ async function send_request() {
   //   }
 
   // the request itself is built in here
-  let request = await build_request() // fucking blobs made me do this
+  // fucking blobs made me do this asynchronously 
+  let request = await build_request() // true means we'll drop some data
   console.log(request)
   
   app.current_request = JSON.parse(JSON.stringify(request))
 
   let url = request.url
   delete request.url
-  
+
+   
   
   // and then I add "extra" fields based on the current state of the software
   app.useragent = app.useragent || await app.name + "/" + await  app.version + " (Tauri " + await app.tversion + ") " + app.platform + " (" +app.arch +")"
@@ -666,11 +672,11 @@ function open_tab(event, element){
     }
 
     if (this.value == "raw") {
-      let body_type_select = document.getElementById("body_type_select")
-      body_type_select.style.display = "inline"
+      let body_mime_type_select = document.getElementById("body_mime_type_select")
+      body_mime_type_select.style.display = "inline"
     } else {
-      let body_type_select = document.getElementById("body_type_select")
-      body_type_select.style.display = "none"
+      let body_mime_type_select = document.getElementById("body_mime_type_select")
+      body_mime_type_select.style.display = "none"
     }
    }
 }
@@ -802,7 +808,6 @@ function add_row(event, element, data) {
       // prevents addition of new empty rows upon key press
       if (!data) {
         console.log("here?")
-
         return
       }
     }
@@ -856,7 +861,7 @@ function add_row(event, element, data) {
     console.log("data", data)
     ed1.value  = data.key || ""
     ed2.value  = data.value || ""
-    ed3.value  = data.descpription || ""  
+    ed3.value  = data.description || ""  
     cb.checked = data.enabled || false
     // this is needed because when I manually enter stuff, it add a new row below the current one
     // but when I call this from the code, it inserts empty rows after each `data`
@@ -878,7 +883,7 @@ function option_selected(event, element) {
   let style = window.getComputedStyle(element || this)
   let color = style.getPropertyValue('color')
   button.value = (element || this).getAttribute('value')
-  if (~button.id.indexOf("body_type_select")) {
+  if (~button.id.indexOf("body_mime_type_select")) {
     let editor = window.exports[button.getAttribute('editor')]
     console.log('settings mode', button.value)
     if (button.value == 'html') {
@@ -946,7 +951,7 @@ function open_combobox() {
 }
 
 function init_comboboxes() {
-  let comboboxes_names =["metod_select", "body_type_select", "response_body_type_select", "auth_type_select"]
+  let comboboxes_names =["metod_select", "body_mime_type_select", "response_body_type_select", "auth_type_select"]
   for (let combobox_name of comboboxes_names) {
     let combobox = document.getElementById(combobox_name)    
     let select = combobox.parentElement
@@ -1328,14 +1333,24 @@ function build_empty_request() {
     method : "GET",
     url : "",
     base_url : "",
-    query_params : {},
+    query_params : [],
     headers : [],
     auth_type : "none",
     body_type : "none",
     scripts : {
       pre : "",
       post : ","
-    }
+    },
+    body_data : {
+      raw : "",
+      "form-data" : [],
+      "x-www-form-urlencoded" : [],
+      binary : {
+        filename: "", 
+        data: null
+      }
+    },
+    body_mime_type : "text/plain"
   }
   return result
 }
@@ -1359,17 +1374,17 @@ function fill_in_forms() {
     // fill in headers
     let headers_table = document.getElementById("headers_table")
     for (let hid in app.current_request.headers) {
-      add_row(null, headers_table, {key: hid, value: app.current_request.headers[hid], enabled: true}) 
+      let data = app.current_request.headers[hid]
+      add_row(null, headers_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
     }
 
+    // fill in query params
     let query_params_table = document.getElementById("query_params_table")
-    console.log("add rows start =========================")
-    
     for (let qpid in app.current_request.query_params) {
-      console.log(qpid, app.current_request.query_params[qpid])
-      add_row(null, query_params_table, {key: qpid, value: app.current_request.query_params[qpid], enabled: true, prevent_addition_of_a_new_row : true}) 
+      let data = app.current_request.query_params[qpid]
+      add_row(null, query_params_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
     }
-    console.log("add rows end ===========================")
+
 
     let metod_select = document.getElementById("metod_select")
     metod_select.value = app.current_request.method || ""
@@ -1418,9 +1433,9 @@ function fill_in_forms() {
       }
     }
 
+    // process body  ==================
 
-  
-    // process body
+    //result.body_type
     let request_body_tabbar = document.getElementById('request_body_tabbar')
     let radios = request_body_tabbar.getElementsByClassName('tab_header_button')
     for (let radio of radios) {
@@ -1428,6 +1443,44 @@ function fill_in_forms() {
         radio.click()
       }
     }
+
+    // fill in form-data
+    let form_data_table = document.getElementById("form-data_table")
+    for (let fdid in app.current_request.body_data["form-data"]) {
+      let data = app.current_request.body_data["form-data"][fdid]
+      add_row(null, form_data_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
+    }
+
+    // fill in x-www-form-urlencoded_table
+    let x_www_form_urlencoded_table = document.getElementById("x-www-form-urlencoded_table")
+    for (let xfid in app.current_request.body_data["form-data"]["x-www-form-urlencoded"]) {
+      let data = app.current_request.body_data[xfid]
+      add_row(null, x_www_form_urlencoded_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
+    }
+
+    // raw body data
+    body_editor.setValue(app.current_request.body_data.raw || "")
+
+    // binary body data
+    let body_binary_file_input = document.getElementById("body_binary_file_input")
+    body_binary_file_input.value = app.current_request.body_data.binary.filename || "Browse..."
+
+    // body mime type
+    let body_mime_type_select = document.getElementById("body_mime_type_select")
+    let mitems = body_mime_type_select.parentElement.getElementsByClassName("dropdown-item")
+    //console.log("items",items)
+    for (let item of mitems) {      
+      if (item.getAttribute("value") == app.current_request.body_mime_type) {
+        //console.log("clicking",item)
+        option_selected(null, item)
+        break
+      }
+    }
+    body_mime_type_select.value = app.current_request.body_mime_type
+
+
+    //result.body_mime_type
+
 
     for (let table of tables) {
         add_row(null, table)
@@ -1518,12 +1571,18 @@ async function add_request() {
     app.current_request = JSON.parse(JSON.stringify(request))
 
     let current_tab = document.getElementById(app.current_tab)
-    let is_modified = JSON.parse(current_tab.getAttribute("modified"))
+    // if ther are no tabs yet, there are no current tab
+    let is_modified = JSON.parse(current_tab?.getAttribute("modified") || "false") // old tab
+    //let is_modified = JSON.parse(current_tab.getAttribute("modified"))
     //console.log("setting modified inside tab_click", is_modified) 
-    if (is_modified) { // true/false shenanigans
-      await write_request_file(app.current_tab, true)
+    if (current_tab) {
+      if (is_modified) { // true/false shenanigans
+        await write_request_file(app.current_tab, true)
+      } else {
+        await write_request_file(app.current_tab)
+      }
     } else {
-      await write_request_file(app.current_tab)
+      console.log("add_request: no current_tab")
     }
   }
   
@@ -1571,6 +1630,22 @@ function show_auth_tab(id) {
   }
 }
 
+
+async function select_file() {
+  // Open a dialog
+  const file = await app.open_dialog({
+    multiple: false,
+    directory: false,
+  });
+  let body_binary_file_input_label = document.getElementById('body_binary_file_input_label')
+  let body_binary_file_input = document.getElementById('body_binary_file_input')
+  body_binary_file_input_label.textContent = file.path
+  body_binary_file_input.value = file.name
+  body_binary_file_input.setAttribute("filename", file.path)
+
+  console.log(file);
+}
+
 function init() {  
   console.log('init')
   // enable add_row buttons (those adding rows to param tables)
@@ -1601,6 +1676,8 @@ function init() {
   let request_bar_scroll_area = document.getElementById('request_bar_scroll_area')
   request_bar_scroll_area.addEventListener("wheel", main_scroll_tabbar_wheel);
 
+  let body_binary_file_input = document.getElementById('body_binary_file_input')
+  body_binary_file_input.addEventListener("click", select_file);
 
   init_comboboxes()
   init_menus()
@@ -1626,6 +1703,7 @@ function init() {
   add_request_button.addEventListener("click", add_request);
   mock_button.addEventListener("click", add_request);
 
+  
 
   document.addEventListener("keydown", keyboard_shortcuts_handler);
 
