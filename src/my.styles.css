@@ -670,6 +670,18 @@ td:not(td:has(*)) {
   border: 1pt solid rgba(250, 235, 215, 0.5);  
 }
 
+#response_cookies_table th,
+.response_params_table td:not(td:has(input)),
+.request_params_table td:not(td:has(input)) {
+  padding-left: 5pt;
+  padding-right: 5pt;
+}
+
+td:not(td:has(input)) {
+  word-break: break-all;
+}
+
+
 .response_params_table tr,
 .request_params_table tr {
   height: 26pt;
@@ -1017,8 +1029,11 @@ label, button, .treeview, .menuitem, .menu {
   min-width: 100pt;
   border-radius: 5pt;
   margin-right: 5pt;
+  padding: 5pt;
+  max-width: 100%;
 }
 
 #body_binary_file_input_label {
   display: inline-block;
+  
 }

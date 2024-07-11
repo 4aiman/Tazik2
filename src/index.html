@@ -62,7 +62,8 @@
 
   </head>
 
-  <body onload="init()">
+  <body>
+  <!-- <body onload="init()"> -->
 
     <div class="navbar">
       <div class="dropdown">
@@ -93,9 +94,9 @@
 
     <div id="content">
       <div class="sidebar-left">
-        <label><input type="radio" name="current_mode" id="collections_button"  onclick="handle_buttons(this)" checked >📂<br>Collections</label>
-        <label><input type="radio" name="current_mode" id="environments_button" onclick="handle_buttons(this)"         >🌍<br>Environments</label>
-        <label><input type="radio" name="current_mode" id="history_button"      onclick="handle_buttons(this)"         >🕛<br>History</label>
+        <label><input type="radio" name="current_mode" id="collections_button"  checked >📂<br>Collections</label>
+        <label><input type="radio" name="current_mode" id="environments_button"         >🌍<br>Environments</label>
+        <label><input type="radio" name="current_mode" id="history_button"              >🕛<br>History</label>
       </div>
 
       <div id="main_area">
@@ -146,7 +147,7 @@
                 </div>  
                 <input type="text" id="url_input">
               </div>
-              <button id="send_request" onclick="send_request()"> Send </button>
+              <button id="send_request" > Send </button>
             </div>
 
             <div class="navbar-links" id="current_request_path">
@@ -469,6 +470,7 @@
                       <th>Expires</th>
                       <th>HttpOnly</th>
                       <th>Secure</th>
+                      <th>SameSite</th>
                     </tr>
                   </table>
                 </div>
@@ -575,7 +577,7 @@
 
 
     <script src="./code_editors.js" ></script>  
-    <script src="./main.js" ></script>  
+    <script type="module" src="./main.js" defer></script>
     <link rel="stylesheet" href="./my.styles.css" />    
     <style id="animations"></style>
 

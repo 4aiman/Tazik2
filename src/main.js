@@ -90,18 +90,6 @@ function fetchStream(stream) {
   });
 }
 
-function highlight(code) {
-  
-  let hl = hljs.highlightAuto(code, ['JSON', 'XML', 'HTML', 'JavaScript']).value
-
-  // let line = 1;
-  // hl = hl.replace(/^/gm, function() {
-  //     return '<span class="line-number-position">&#x200b;<span class="line-number">' + line++ + '</span></span>';
-  // });
-
-  return hl
-}
-
 function build_request_url(){
   let url_input = document.getElementById('url_input')
   let full_url = url_input.value
@@ -110,35 +98,24 @@ function build_request_url(){
   let result = []
   let [url, params] = full_url.split("?")
 
-  for (let param of (params || "").split("&")) {
-    let [key, value] = param.split("=")
-    add_row(null, request_params_table, {key: key, value: value, enabled: true}) 
-  }
-
-  for (let i = 0; i< inputs.length/5; i++) {
-    let enabled = inputs[(i*5)].checked
-    let key     = inputs[(i*5)+1].value
-    let value   = inputs[(i*5)+2].value
-    if (enabled) {// need to save disabled as well... somehow
-      if (key) {
-        //console.log(i, inputs[(i*5)+1].value, inputs[(i*5)+2].value, inputs[(i*5)+3].value)
-        if (value) {
-          result.push(inputs[(i*5)+1].value + "=" + inputs[(i*5)+2].value)
-        } else {
-          result.push(inputs[(i*5)+1].value)
-        }
-      }
+  let param_count = 0
+  if (params && params != "") {
+    let split_params = params.split("&")
+    for (let param of split_params) {
+      param_count = param_count + 1
+      let [key, value] = param.split("=")
+      add_row(null, request_params_table, {on: true, key: key, value: value, enabled: true, prevent_addition_of_a_new_row:(split_params.length != param_count)}) 
     }
   }
 
+  
   for (let i = 0; i< inputs.length/5; i++) {    
     let key         = inputs[(i*5)+1].value
     let value       = inputs[(i*5)+2].value
-    // let description = inputs[(i*5)+3].value
+    let description = inputs[(i*5)+3].value
     let delete_butt = inputs[(i*5)+4]
     
-    // key && value === 0, and thus falsy (description misn't necessary)
-    if (!(key && value)) {
+    if (!(key || value || description)) {
       if (window.getComputedStyle(delete_butt).display != "none") {
         delete_row(null, inputs[(i*5)])
       }      
@@ -161,8 +138,12 @@ function build_request_url(){
 }
 
 function request_table_to_json(table_name) {  
+  console.log("request_table_to_json",table_name)
   let table = document.getElementById(table_name)
   let inputs = table.getElementsByTagName("input")
+  for (let i = 0; i< inputs.length/5; i++) {
+      console.log(i, inputs[i].value)
+  }
   let result = []
   for (let i = 0; i< inputs.length/5; i++) {
     let on      = inputs[(i*5)].checked
@@ -170,15 +151,15 @@ function request_table_to_json(table_name) {
     let value   = inputs[(i*5)+2].value
     let desc    = inputs[(i*5)+3].value
     let enabled = (window.getComputedStyle(inputs[(i*5)+4]).display != "none")
-
+    console.log('adding from ' + table_name, on || '-', key || '-', value || '-', desc || '-', enabled || '-')
     let counter = 0
-    if (enabled) { // ignore the last row w/o visible button
+    //if (enabled) { // ignore the last row w/o visible button
       //if (key && value) {
           counter = counter + 1
-          // save the checkbox, key, value, and description
+          // save the checkbox, key, value, and description          
           result.push({key: key, enabled: enabled, on: on, value : value || "", description: desc || ""})
       //}
-    }
+    //}
   }
   return result
 }
@@ -205,6 +186,7 @@ async function read_file_synchronyously(file) {
 }
 
 async function build_request() { 
+  console.log("==== START BUILDING REQUEST ====")
   let raw_request_body_data = document.getElementById('raw_request_body_data')
   let response_area = document.getElementById('response_body')
   let method = document.getElementById('metod_select').getAttribute('value')  
@@ -239,31 +221,31 @@ async function build_request() {
       if (input.classList.contains("username_input")) {
         result.auth[panel_auth_type].username = input.value
         if (panel.id == current_panel_id) {
-          result.username = input.value
+          //result.username = input.value
         }
       }
       if (input.classList.contains("password_input")) {
         result.auth[panel_auth_type].password = input.value
         if (panel.id == current_panel_id) {
-          result.password = input.value
+          //result.password = input.value
         }
       }
       if (input.classList.contains("domain_input")) {
         result.auth[panel_auth_type].domain = input.value
         if (panel.id == current_panel_id) {
-          result.domain = input.value
+          //result.domain = input.value
         }
       }
       if (input.classList.contains("workstation_input")) {
         result.auth[panel_auth_type].workstation = input.value
         if (panel.id == current_panel_id) {
-          result.workstation = input.value
+          //result.workstation = input.value
         }
       }
       if (input.classList.contains("token_input")) {
         result.auth[panel_auth_type].token = input.value
         if (panel.id == current_panel_id) {
-          result.token = input.value
+          //result.token = input.value
         }
       }      
     }
@@ -296,14 +278,6 @@ async function build_request() {
   // binary data itself won't be saved/loaded by deafult, as this project isn't about sharing files
   result.body_data["binary"]                = {filename: body_binary_file, data: null}
   
-  // load the file fron a local source every time it's needed. yeah, I knowm this is slow
-  if (body_type == "binary") {      
-     console.log(body_binary_file)
-      result.body = await read_file_synchronyously(body_binary_file)
-      // NEVER do this, as this will store the entire file into your request!
-      // result.body_data["binary"].data = result.body
-  }
-
   // needs adjustments
   let body_mime_type_select = document.getElementById("body_mime_type_select")
   switch(body_mime_type_select.value) {
@@ -330,6 +304,145 @@ async function build_request() {
 
   console.log("request built ", result)
 
+  console.log("==== FINISH BUILDING REQUEST ===")
+  return result
+}
+
+function add_content_type_header(value) {
+  let headers_table = document.getElementById("headers_table")
+  let inputs = headers_table.getElementsByTagName("input")
+  
+  let found 
+  for (let i = 0; i< inputs.length/5; i++) {
+    let key = inputs[(i*5)+1].value
+    if (key == 'Content-Type') {
+      found = true // don't care about the value, but if it catches something in 0th row then `if (!found)` equals to true (0 is falsy)
+      break
+    }
+  }
+
+  
+  let content_type = value
+
+  switch(value) {
+    case "text": 
+      content_type = "text/plain"
+    break
+    case "javascript": 
+      content_type = "text/javascript"
+    break
+    case "html": 
+      content_type = "text/html"
+    break
+    case "xml": 
+      content_type = "application/xml"
+    break
+    case "application/ld+json": 
+      content_type = "application/json"
+    break
+    default:
+      content_type = value || "text/plain"
+    break
+  }
+
+  if (!found) {
+    add_row(null, headers_table, {on: true, key: 'Content-Type', value: content_type, description:"Set automatically, according to body type", enabled: true}) 
+  }
+
+  for (let i = 0; i< inputs.length/5; i++) {    
+    let key         = inputs[(i*5)+1].value
+    let value       = inputs[(i*5)+2].value
+    let description = inputs[(i*5)+3].value
+    let delete_butt = inputs[(i*5)+4]
+    
+    if (!(key || value || description)) {
+      if (window.getComputedStyle(delete_butt).display != "none") {
+        delete_row(null, inputs[(i*5)])
+      }      
+    }
+  }
+
+
+}
+
+async function get_sendable_request_data(request) {
+  let result = {headers : {}}
+
+  if (!request.method == 'GET') {
+    add_content_type_header(request.body_mime_type)
+  }
+
+  for (let header of request.headers) {
+    if (header.on && header.key !="" && header.value !="") {
+      result.headers[header.key] = header.value || ""
+    }
+  }
+
+  let query_params = []
+  for (let param of request.query_params) {
+    if (param.on && param.key !="") {
+      if (param.value !="") {
+        query_params.push([param.key, param.value].join("="))
+      } else {
+        query_params.push(param.key)
+      }      
+    }
+  }
+
+  result.url = [request.url, '?', query_params.join("&")].join("")
+
+  // and then I add "extra" fields based on the current state of the software
+  app.useragent = app.useragent || await app.name + "/" + await  app.version + " (Tauri " + await app.tversion + ") " + app.platform + " (" +app.arch +")"
+  result.headers["User-Agent"] = result.headers["User-Agent"] || app.useragent
+  result.headers.Accept = result.headers.Accept || "*/*"
+  result.headers["Accept-Encoding"] = result.headers["Accept-Encoding"] || "gzip, deflate, br"
+  result.headers.Connection = result.headers.Connection || "keep-alive"
+  //result.headers["Content-Type"] = request.body_mime_type
+
+  result.method = request.method
+  result.timeout = request.timeout
+
+  switch(request.auth_type) {
+    case "basic" :      
+      result.headers.Authorization = 'Basic '+ btoa(request.auth.basic.username + ":" + request.auth.basic.password) 
+    break
+    case "bearer" :
+      result.headers.Authorization = 'Bearer '+ request.auth.bearer.token
+    break
+    case "ntlm" :
+      console.log("NTLM isn't not supprted yet")
+    break
+  }
+
+
+  if (request.method != "GET") {
+    switch(request.body_type) {
+      case "form-data" :
+        // this is not a result, this is only a JSON object with everything necessary in it
+        //result.body = request_table_to_json("form-data_table")
+      break
+
+      case "x-www-form-urlencoded" :
+        // this is not a result, this is only a JSON object with everything necessary in it
+        //result.body = request_table_to_json("x-www-form-urlencoded_table")      
+      break
+
+      case "raw" :
+        result.body = request.body_data.raw
+      break
+
+      case "binary" :
+        result.body = request.body_data.data || await read_file_synchronyously(request.body_data.filename)
+      break
+
+      default:
+      break
+    }
+  } else {
+    console.log("GET requests can't have body. Stripping. (*Technically* they can, but FY)")
+  }
+
+  console.log("sendable request: ",JSON.stringify(result, null, 4))
   return result
 }
 
@@ -350,6 +463,9 @@ async function send_request() {
     
   //   }
 
+  //document.getElementById('url_input').value = 'https://demo1-recorder-api.dev.ntrnx.com/api/recorder/settings/notifications?api-version=1.0'
+  //fill_mock_data()
+
   // the request itself is built in here
   // fucking blobs made me do this asynchronously 
   let request = await build_request() // true means we'll drop some data
@@ -357,17 +473,7 @@ async function send_request() {
   
   app.current_request = JSON.parse(JSON.stringify(request))
 
-  let url = request.url
-  delete request.url
-
-   
-  
-  // and then I add "extra" fields based on the current state of the software
-  app.useragent = app.useragent || await app.name + "/" + await  app.version + " (Tauri " + await app.tversion + ") " + app.platform + " (" +app.arch +")"
-  request.headers["User-Agent"] = request.headers["User-Agent"] || app.useragent
-  request.headers.Accept = request.headers.Accept || "*/*"
-  request.headers["Accept-Encoding"] = request.headers["Accept-Encoding"] || "gzip, deflate, br"
-  request.headers.Connection = request.headers.Connection || "keep-alive"
+ 
   
   await write_request_file(app.current_tab)
 
@@ -421,12 +527,14 @@ function CallWebAPI() {
   
 
   let result1
+  let sendable_request = await get_sendable_request_data(request)    
   let start_time = new Date()
   // sending actuall request 
   try {
-    console.log("second fetch", JSON.stringify(request, null, 4))
-    result1 = await app.fetch(url, request)
+    console.log("second fetch", JSON.stringify(request, null, 4))    
+    result1 = await app.fetch(sendable_request.url, sendable_request)
     console.log("result1", result1)
+    
   } catch(err) {
     
     let network_info      = document.getElementById("network_info")
@@ -464,24 +572,101 @@ function CallWebAPI() {
   //console.log(window.sessionStorage.length)
 
   if (result1) {
+
+
+
     let response_headers = {}
     for (let pair of result1.headers.entries()) {
-      let tr = document.createElement('tr')
-      let td1 = document.createElement('td')
-      let td2 = document.createElement('td')
-      td1.textContent = pair[0]
-      td2.textContent = pair[1]
-      response_headers[pair[0]] = pair[1]
-      tr.appendChild(td1)
-      tr.appendChild(td2)
-      response_table.appendChild(tr)
-      //console.log(pair)
+      if (pair[0] != "set-cookie") {
+        let tr = document.createElement('tr')
+        let td1 = document.createElement('td')
+        let td2 = document.createElement('td')
+        td1.textContent = pair[0]
+        td2.textContent = pair[1]
+        response_headers[pair[0]] = pair[1]
+        tr.appendChild(td1)
+        tr.appendChild(td2)
+        response_table.appendChild(tr)
+        //console.log(pair)
+      } else {
+        console.log(pair)
+      }
   }
   
-    //console.log(result1.headers.get('set-cookie'))
-  //for (let pair of result1.headers.get('set-cookie')) {
-  //  console.log(pair)
-  //}
+  
+  let cookies = await result1.headers.getSetCookie()
+  let known_cookie_fields = ['domain', 'path', 'expires', 'httponly', 'secure', 'samesite', 'max-age']
+  let parsed_cookies = []
+  for (let cookie of cookies) {
+    let fields = cookie.split(";")    
+    let parsed_cookie = {      
+      domain : (new URL(sendable_request.url)).hostname,
+      httponly : "no",
+      secure : "no",
+      samesite : "no",
+      path : "/"
+    }
+    for (let field of fields) {
+      let [key, value] = field.split("=")
+      let tkey = key.trim().toLowerCase()
+      if (known_cookie_fields.includes(tkey)) {
+        parsed_cookie[tkey] = (value || "yes").trim()
+      } else {
+        parsed_cookie[key.trim()] = (value || "yes").trim()
+      }
+    }
+    parsed_cookie.expires = parsed_cookie["max-age"] || parsed_cookie.expires || "Session"
+    let maxage = Number(parsed_cookie.expires)
+    if (!isNaN(maxage)) {
+      // if Expires can be converted to a number then calculate the expiration date
+      parsed_cookie.expires = (new Date(start_time.getTime() + maxage)).toUTCString()
+    }    
+    parsed_cookies.push(parsed_cookie)
+  }
+
+  //console.log("cookies", cookies)
+  console.log("parsed_cookies", parsed_cookies)
+
+  let response_cookies_table = document.getElementById("response_cookies_table")
+  response_cookies_table.innerHTML = '<tr><th>Name</th><th>Value</th><th>Domain</th><th>Path</th><th>Expires</th><th>HttpOnly</th><th>Secure</th><th>SameSite</th></tr>'
+  for (let cookie of parsed_cookies) {
+    let cookie_name
+    let cookie_value
+    for (let key in cookie) {
+      if (!known_cookie_fields.includes(key.toLowerCase())) {
+        cookie_name = key
+        cookie_value = cookie[key]
+      }       
+    }
+    
+    let tr = document.createElement('tr')
+    let td1 = document.createElement('td')
+    let td2 = document.createElement('td')
+    let td3 = document.createElement('td')
+    let td4 = document.createElement('td')
+    let td5 = document.createElement('td')
+    let td6 = document.createElement('td')
+    let td7 = document.createElement('td')
+    let td8 = document.createElement('td')
+    td1.textContent = cookie_name
+    td2.textContent = cookie_value
+    td3.textContent = cookie.domain   || cookie.Domain
+    td4.textContent = cookie.path     || cookie.Path
+    td5.textContent = cookie.expires  || cookie.Expires
+    td6.textContent = cookie.httponly || cookie.HttpOnly
+    td7.textContent = cookie.secure   || cookie.Secure
+    td8.textContent = cookie.samesite || cookie.SameSite
+    tr.appendChild(td1)
+    tr.appendChild(td2)
+    tr.appendChild(td3)
+    tr.appendChild(td4)
+    tr.appendChild(td5)
+    tr.appendChild(td6)
+    tr.appendChild(td7)
+    tr.appendChild(td8)
+    response_cookies_table.appendChild(tr)
+  
+  }
 
 
     let result2
@@ -511,7 +696,7 @@ function CallWebAPI() {
           result2 = JSON.stringify(await (result1).json())
         break;
         default:
-          result2 = await (result1).text()
+          result2 = await (result1).text()//
         break;
       }
       code = result2
@@ -540,6 +725,29 @@ function CallWebAPI() {
     let raw_response_editor = document.getElementById("raw_response_body_data")
     let pre_response_editor = document.getElementById("raw_response_body_data")
     
+
+    // beautify response ============
+    // let response_body_type_select = document.getElementById('response_body_type_select')
+    // response_body_type_select.value = mode
+    // response_body_type_select.click()
+    // let combobox = response_body_type_select
+    // while (!(combobox.classList?.contains('dropdown'))) {
+    //   combobox = combobox.parentElement
+    // }  
+
+    // let items = combobox.getElementsByClassName("dropdown-item")
+    // for (let item of items) {
+    //   if (item.getAttribute("value").indexOf(mode)) {
+    //     item.click()
+    //     break
+    //   }
+    // }
+    // // ====================
+    // let beautify_raw_data_response = document.getElementById("beautify_raw_data_response")
+    // beautify_raw_data_response.click()
+
+    response_editor.setOption("mode", mode)
+
     // settings output views:
     /* pretty  */ response_editor.setValue(code || "")
     /* raw     */ raw_response_editor.textContent = code
@@ -548,15 +756,15 @@ function CallWebAPI() {
 
 
     
-    // beautify response
-    document.getElementById('beautify_raw_data_response').click()
 
+
+    
   }
 }
 
 // ====================================================
 function code_beautify(source, mode) {
-  //console.log('code_beautify', source, mode)
+  console.log('code_beautify', source, mode)
   let result = source
   let options = { 
     "indent_size": "2",
@@ -788,7 +996,7 @@ function add_row(event, element, data) {
   }
 
   let rows = table.getElementsByTagName('tr')
-  if (rows.length > 2) {
+  if (rows.length > 1) {  // changed this to 1 to avoid spawning extra rows
     let last_row = rows[rows.length-1]
     let tds = last_row.getElementsByTagName("input")
     
@@ -862,10 +1070,11 @@ function add_row(event, element, data) {
     ed1.value  = data.key || ""
     ed2.value  = data.value || ""
     ed3.value  = data.description || ""  
-    cb.checked = data.enabled || false
+    cb.checked = data.on || false
     // this is needed because when I manually enter stuff, it add a new row below the current one
     // but when I call this from the code, it inserts empty rows after each `data`
-    if (!data.prevent_addition_of_a_new_row) {
+    if (!data.prevent_addition_of_a_new_row && data.enabled) {
+      console.log("THIS IS WHERE IT ADDS ONE MORE ROW")
       let event  = new Event('keyup')
       ed1.dispatchEvent(event);
     }
@@ -883,7 +1092,7 @@ function option_selected(event, element) {
   let style = window.getComputedStyle(element || this)
   let color = style.getPropertyValue('color')
   button.value = (element || this).getAttribute('value')
-  if (~button.id.indexOf("body_mime_type_select")) {
+  if (button.id == "body_mime_type_select" ) {
     let editor = window.exports[button.getAttribute('editor')]
     console.log('settings mode', button.value)
     if (button.value == 'html') {
@@ -903,6 +1112,11 @@ function option_selected(event, element) {
       editor.setOption("lint", true)
     } else {
       editor.setOption("lint", false)
+    }
+
+    let method = document.getElementById('metod_select').value
+    if (!(method == 'GET')) {
+      add_content_type_header(button.value)
     }
   } 
   
@@ -1375,14 +1589,14 @@ function fill_in_forms() {
     let headers_table = document.getElementById("headers_table")
     for (let hid in app.current_request.headers) {
       let data = app.current_request.headers[hid]
-      add_row(null, headers_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
+      add_row(null, headers_table, {key: data.key, value: data.value, enabled: data.enabled, on:data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
     }
 
     // fill in query params
     let query_params_table = document.getElementById("query_params_table")
     for (let qpid in app.current_request.query_params) {
       let data = app.current_request.query_params[qpid]
-      add_row(null, query_params_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
+      add_row(null, query_params_table, {key: data.key, value: data.value, enabled: data.enabled, on:data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
     }
 
 
@@ -1445,17 +1659,19 @@ function fill_in_forms() {
     }
 
     // fill in form-data
+    console.log("fill in form-data")
     let form_data_table = document.getElementById("form-data_table")
     for (let fdid in app.current_request.body_data["form-data"]) {
       let data = app.current_request.body_data["form-data"][fdid]
-      add_row(null, form_data_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
+      add_row(null, form_data_table, {key: data.key, value: data.value, enabled: data.enabled, on: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
     }
 
     // fill in x-www-form-urlencoded_table
+    console.log("fill in x-www-form-urlencoded_table")
     let x_www_form_urlencoded_table = document.getElementById("x-www-form-urlencoded_table")
-    for (let xfid in app.current_request.body_data["form-data"]["x-www-form-urlencoded"]) {
-      let data = app.current_request.body_data[xfid]
-      add_row(null, x_www_form_urlencoded_table, {key: data.key, value: data.value, enabled: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
+    for (let xfid in app.current_request.body_data["x-www-form-urlencoded"]) {
+      let data = app.current_request.body_data["x-www-form-urlencoded"][xfid]
+      add_row(null, x_www_form_urlencoded_table, {key: data.key, value: data.value, enabled: data.enabled, on: data.on, description:data.description, prevent_addition_of_a_new_row : true}) 
     }
 
     // raw body data
@@ -1562,7 +1778,7 @@ function window_resize_trigger() {
   adjust_main_tabbar_buttons()
 }
 
-
+let u
 
 
 async function add_request() {
@@ -1584,8 +1800,8 @@ async function add_request() {
     } else {
       console.log("add_request: no current_tab")
     }
-  }
-  
+  }  
+
   let request_id = crypto.randomUUID()
   let request_name = "New Request" //+ " " + app.opened_tabs.length
   
@@ -1637,13 +1853,17 @@ async function select_file() {
     multiple: false,
     directory: false,
   });
-  let body_binary_file_input_label = document.getElementById('body_binary_file_input_label')
-  let body_binary_file_input = document.getElementById('body_binary_file_input')
-  body_binary_file_input_label.textContent = file.path
-  body_binary_file_input.value = file.name
-  body_binary_file_input.setAttribute("filename", file.path)
 
-  console.log(file);
+
+  if (file) {
+    let body_binary_file_input_label = document.getElementById('body_binary_file_input_label')
+    let body_binary_file_input = document.getElementById('body_binary_file_input')
+    body_binary_file_input_label.textContent = file.path
+    body_binary_file_input.value = file.name
+    body_binary_file_input.setAttribute("filename", file.path)
+  }
+  
+  console.log(" - file - ",file);
 }
 
 function init() {  
@@ -1678,6 +1898,9 @@ function init() {
 
   let body_binary_file_input = document.getElementById('body_binary_file_input')
   body_binary_file_input.addEventListener("click", select_file);
+
+  let send_request_button = document.getElementById('send_request')
+  send_request_button.addEventListener("click", send_request);
 
   init_comboboxes()
   init_menus()
@@ -1720,9 +1943,7 @@ function init() {
 
   window.addEventListener("resize", window_resize_trigger)
 
-  fill_mock_data()
-
-  test()
+  
 }
 
 
@@ -1730,10 +1951,10 @@ function fill_mock_data() {
   let container = document.getElementById("request_body_wrapper")
   let tables = container.getElementsByClassName("request_params_table")
 
-  for (let table of tables) {
-    table.innerHTML = "<tr><th>✅</th><th>Key</th><th>Value</th><th>Description</th><th>🗑️</th></tr>" 
-    add_row(null, table)
-  }
+  // for (let table of tables) {
+  //   table.innerHTML = "<tr><th>✅</th><th>Key</th><th>Value</th><th>Description</th><th>🗑️</th></tr>" 
+  //   add_row(null, table)
+  // }
 
   let auth_panel =  document.getElementById('auth_right_side')
   let auth_inputs = auth_panel.getElementsByClassName("auth_input")
@@ -1751,16 +1972,20 @@ function fill_mock_data() {
   }
 
   let url_input = document.getElementById("url_input")   
-  //url_input.value = "https://demo1-recorder-api.dev.ntrnx.com/api/recorder/settings/notifications?api-version=1.0"
+  url_input.value = "https://demo1-recorder-api.dev.ntrnx.com/api/recorder/settings/notifications?api-version=1.0"
+  url_input.value = "https://demo1-recorder-api.dev.ntrnx.com/api/recorder/video/page?api-version=1.0&pageNumber=1&pageSize=10&countTotal=true"
   //url_input.value = "https://192.168.1.113:8443/web/save_isap_config"
   //url_input.value = "http://reconf-ad-2.dev.ntrnx.local/Ews/Exchange.asmx"
-  url_input.value = "https://192.168.1.113:8443/api/hw-monitor"
+  //url_input.value = "https://192.168.1.113:8443/api/hw-monitor"
   //url_input.value = "https://wrong.host.badssl.com/"
 
-  //let auth_type_select = document.getElementById("auth_type_select") 
-  //auth_type_select.value = 'bearer'
+  let auth_type_select = document.getElementById("auth_type_select") 
+  auth_type_select.value = 'bearer'
   //auth_type_select.value = 'basic'
-  
+
+  let body_type_select = document.getElementById("auth_type_select") 
+  auth_type_select.value = 'bearer'
+
 }
 
 
@@ -1784,17 +2009,17 @@ function fill_mock_data() {
 // fetchData()
 
 
-async function test(){
-  // try {
-  //   const response = await app.fetch("https://192.168.1.113:8443/api/hw-monitor");
-  //   console.trace("fff")
-  //   console.log(response.status);  
-  //   console.log(response.statusText); 
-  //   const jsonData = await response.json();
-  //   console.log(jsonData)
-  // } catch(err) {
-  //   console.log(err)
-  // }
-//  console.log(await app.invoke("api_post_req", { url:"https://wrong.host.badssl.com/"}));
+async function run() {
+  let fetch2 = window.__TAURI__.http.fetch 
+  try {
+    console.log("fetching", fetch2)
+    let result = await fetch2("https://192.168.1.113:8443/hw-monitor")
+    console.log(await result.text())
+  } catch(err) {
+    console.log(err) 
+  }
 }
 
+window.onload = init
+
+await run()
