@@ -155,7 +155,7 @@ input[type="text"] {
   padding-left: 5pt;
   padding-right: 5pt;
   color: #ffcf77;  
-  background-color: #333;
+  /* background-color: #333; */
 }
 
 #bearer_token_input {

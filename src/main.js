@@ -433,9 +433,9 @@ async function get_sendable_request_data(request) {
             form_data_body.append(row.key, row.value)
           }
         }
-        for(let pair of form_data_body.entries()) {
-          console.log("form data entries",pair[0]+', '+pair[1]);
-        }
+        // for(let pair of form_data_body.entries()) {
+        //   console.log("form data entries",pair[0]+', '+pair[1]);
+        // }
         // replace content_type        
         //result.headers["Content-Type"] = 'multipart/form-data'
         // set body to newly generated data
@@ -446,7 +446,17 @@ async function get_sendable_request_data(request) {
       case "x-www-form-urlencoded" :
         console.log("adding x-www-form-urlencoded body data")
         // this is not a result, this is only a JSON object with everything necessary in it
-        //result.body = request_table_to_json("x-www-form-urlencoded_table")      
+        //result.body = 
+        let url_encoded_table_rows = request_table_to_json("x-www-form-urlencoded_table")
+        let urlencoded_data_body = new URLSearchParams();      
+        for (let row of url_encoded_table_rows) {
+          if (row.on && row.key != "" && row.value !="") {
+            urlencoded_data_body.append(row.key, row.value)
+          }
+        }
+        result.headers["Content-Type"] = 'application/x-www-form-urlencoded'
+        result.body = urlencoded_data_body.toString()
+        console.log(url_encoded_table_rows, url_encoded_table_rows)
       break
 
       case "raw" :
@@ -747,42 +757,48 @@ function CallWebAPI() {
     request_size_info.innerHTML = ["Size:", "<span class='green'>", Math.ceil((body_length + headers_length)/10)/100, 'KB','</span>'].join(" ")
     
     let raw_response_editor = document.getElementById("raw_response_body_data")
-    let pre_response_editor = document.getElementById("raw_response_body_data")
+    let pre_response_editor = document.getElementById('preview_response_body_data')
     
 
     // beautify response ============
-    // let response_body_type_select = document.getElementById('response_body_type_select')
-    // response_body_type_select.value = mode
-    // response_body_type_select.click()
-    // let combobox = response_body_type_select
-    // while (!(combobox.classList?.contains('dropdown'))) {
-    //   combobox = combobox.parentElement
-    // }  
+    let response_body_type_select = document.getElementById('response_body_type_select')
+    //response_body_type_select.value = mode
+    //response_body_type_select.click()
+    let combobox = response_body_type_select
+    while (!(combobox.classList?.contains('dropdown'))) {
+      combobox = combobox.parentElement
+    }  
 
-    // let items = combobox.getElementsByClassName("dropdown-item")
-    // for (let item of items) {
-    //   if (item.getAttribute("value").indexOf(mode)) {
-    //     item.click()
-    //     break
-    //   }
-    // }
-    // // ====================
-    // let beautify_raw_data_response = document.getElementById("beautify_raw_data_response")
-    // beautify_raw_data_response.click()
+    
 
-    response_editor.setOption("mode", mode)
+    let items = combobox.getElementsByClassName("dropdown-item")
+    for (let item of items) {
+      if (~item.getAttribute("value").indexOf(mode)) {
+        item.click()
+        console.log("clicked", item, mode)
+        break
+      }
+    }
+    // ====================
+
+
 
     // settings output views:
-    /* pretty  */ response_editor.setValue(code || "")
+    /* pretty  */ await response_editor.setValue(code || "")
+                  let beautify_raw_data_response = document.getElementById("beautify_raw_data_response")
+                   beautify_raw_data_response.click()    
+                  //response_editor.setOption("mode", mode) 
+                  // ^ this is not needed, 
+                  // as "mode" is set inside the dropdown click routine
+                  // plus, "mode" here is wrong anyway: "json" instead of "application/ld+json" etc  
     /* raw     */ raw_response_editor.textContent = code
-    /* preview */ pre_response_editor.innerHTML = code
-    document.getElementById('preview_response_body_data').src = "data:text/html;charset=utf-8," + encodeURIComponent(scrollbar_fix + code);
+    /* preview */ pre_response_editor.src = "data:text/html;charset=utf-8," + encodeURIComponent(scrollbar_fix + code);
+      
 
 
+    // 
     
-
-
-    
+  
   }
 }
 
@@ -2054,3 +2070,4 @@ window.onload = init
 await run()
 
 
+//contextmenu event listener
