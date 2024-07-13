@@ -389,7 +389,12 @@ async function get_sendable_request_data(request) {
     }
   }
 
-  result.url = [request.url, '?', query_params.join("&")].join("")
+  // no query params, no "?" at the end
+  if (query_params.length > 0) {
+    result.url = [request.url, '?', query_params.join("&")].join("")
+  } else {
+    result.url = request.url
+  }
 
   // and then I add "extra" fields based on the current state of the software
   app.useragent = app.useragent || await app.name + "/" + await  app.version + " (Tauri " + await app.tversion + ") " + app.platform + " (" +app.arch +")"
@@ -418,20 +423,39 @@ async function get_sendable_request_data(request) {
   if (request.method != "GET") {
     switch(request.body_type) {
       case "form-data" :
+        console.log("adding form-data body data")
         // this is not a result, this is only a JSON object with everything necessary in it
-        //result.body = request_table_to_json("form-data_table")
+        //result.body = 
+        let form_data_table_rows = request_table_to_json("form-data_table")
+        let form_data_body = new FormData()
+        for (let row of form_data_table_rows) {
+          if (row.on && row.key != "" && row.value !="") {
+            form_data_body.append(row.key, row.value)
+          }
+        }
+        for(let pair of form_data_body.entries()) {
+          console.log("form data entries",pair[0]+', '+pair[1]);
+        }
+        // replace content_type        
+        //result.headers["Content-Type"] = 'multipart/form-data'
+        // set body to newly generated data
+        result.body = form_data_body
+        console.log(form_data_table_rows, form_data_body)
       break
 
       case "x-www-form-urlencoded" :
+        console.log("adding x-www-form-urlencoded body data")
         // this is not a result, this is only a JSON object with everything necessary in it
         //result.body = request_table_to_json("x-www-form-urlencoded_table")      
       break
 
       case "raw" :
+        console.log("adding raw body data")
         result.body = request.body_data.raw
       break
 
       case "binary" :
+        console.log("adding binary body data")
         result.body = request.body_data.data || await read_file_synchronyously(request.body_data.filename)
       break
 
@@ -531,7 +555,7 @@ function CallWebAPI() {
   let start_time = new Date()
   // sending actuall request 
   try {
-    console.log("second fetch", JSON.stringify(request, null, 4))    
+    console.log("rust fetch", sendable_request)    
     result1 = await app.fetch(sendable_request.url, sendable_request)
     console.log("result1", result1)
     
@@ -2010,16 +2034,23 @@ function fill_mock_data() {
 
 
 async function run() {
-  let fetch2 = window.__TAURI__.http.fetch 
-  try {
-    console.log("fetching", fetch2)
-    let result = await fetch2("https://192.168.1.113:8443/hw-monitor")
-    console.log(await result.text())
-  } catch(err) {
-    console.log(err) 
-  }
+  let fdb = new FormData()
+  fdb.append("1", "2")
+  fdb.append("3", "4")
+  
+  
+  console.log(await (await app.fetch("https://httpbin.org/post", {
+    headers : {
+      // "Content-Type" : "multipart/form-data",
+      "accept" : "*/*"
+    },
+    method :"POST",
+    body : fdb
+  })).text())
 }
 
 window.onload = init
 
 await run()
+
+

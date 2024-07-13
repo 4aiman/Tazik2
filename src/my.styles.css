@@ -147,12 +147,15 @@ input:not(input[type='file']):hover{
   background-color: #433;
 }
 
-
+input:-webkit-autofill,
+input:-internal-autofill-previewed,
+input:autofill,
 input[type="text"] {
   height: 24.5pt;
   padding-left: 5pt;
   padding-right: 5pt;
-  color: #ffcf77;
+  color: #ffcf77;  
+  background-color: #333;
 }
 
 #bearer_token_input {
@@ -546,10 +549,6 @@ input:not(input[type="text"]) {
   display: inline;
 }
 
-/* responce code preview */
-.editor-container * {
-  user-select: none;
-}
 
 .editor-container {
   width: calc(100% - 5pt);

@@ -19,7 +19,7 @@ tauri = { version = "2.0.0-beta", features = [] }
 tauri-plugin-shell = "2.0.0-beta"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri-plugin-http = { version = "2.0.0-beta.11", featues = ["unsafe-headers"] }
+tauri-plugin-http = { version = "2.0.0-beta.11", featues = ["unsafe-headers", "http-multipart"] }
 tauri-plugin-fs = "2.0.0-beta.10"
 tauri-plugin-process = "2.0.0-beta.7"
 tauri-plugin-websocket = "2.0.0-beta.8"
@@ -27,4 +27,4 @@ tauri-plugin-dialog = "2.0.0-beta.10"
 tauri-plugin-clipboard-manager = "2.1.0-beta.5"
 tauri-plugin-os = "2.0.0-beta.7"
 tauri-plugin-log = "2.0.0-beta.7"
-
+http-multipart = "0.1.0"
