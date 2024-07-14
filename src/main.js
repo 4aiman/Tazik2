@@ -1580,6 +1580,9 @@ async function manage_tab_history(new_tab) {
   }  
   // fills UI with data from the file
   fill_in_forms()
+
+  // save opened tabs
+  await save_opened_tabs()
 }
 
 function build_empty_request() {
@@ -1641,7 +1644,20 @@ function fill_in_forms() {
 
 
     let metod_select = document.getElementById("metod_select")
-    metod_select.value = app.current_request.method || ""
+    //metod_select.value = app.current_request.method || ""//
+    let combobox = metod_select
+    while (!(combobox.classList?.contains('dropdown'))) {
+      combobox = combobox.parentElement
+    }  
+    let meitems = combobox.getElementsByClassName("dropdown-item")
+    for (let item of meitems) {
+      if (~item.getAttribute("value").indexOf(app.current_request.method)) {
+        item.click()
+        console.log("clicked", item, app.current_request.method)
+        break
+      }
+    }
+
 
     let url_input = document.getElementById("url_input")
     url_input.value = app.current_request.base_url || ""
@@ -1863,8 +1879,8 @@ async function add_request() {
   app.opened_tabs.push(request_id)
   app.current_tab = request_id
   let request_bar_scroll_area = document.getElementById('request_bar_scroll_area')
-  request_bar_scroll_area.scrollBy(Number.MAX_SAFE_INTEGER, 0)    
   request_bar_scroll_area.appendChild(tab_button)
+  request_bar_scroll_area.scrollBy(Number.MAX_SAFE_INTEGER, 0)    
   // set modified flag, cause it's not saved
   set_modified(request_id, true)
 
@@ -1904,6 +1920,62 @@ async function select_file() {
   }
   
   console.log(" - file - ",file);
+}
+
+async function save_opened_tabs() {
+  console.log('saving opened tabs')
+  let filename = "opened_tabs.json"
+  await app.writeTextFile(filename, JSON.stringify(app.opened_tabs, null, 2), { baseDir: 15 }) // localappdata
+}
+
+async function load_previoursly_opened_tabs() {
+  // loading history
+  let filename = "opened_tabs.json"
+  let data = await app.readTextFile(filename, { baseDir: 15 }) // localappdata
+  let json_data = JSON.parse(data)
+  let last_id
+  for (let d of json_data) {
+    console.log("found file", d)
+    // need to^
+    // 1. add a tab button
+    // 2. assign it and id
+    // 3. when all done - click the last one
+    // 4. possibe fill the history
+    let request_data 
+    try {
+       request_data = await read_request_file(d)
+    } catch(err) {
+      console.log("couldn't read request data", err)
+    }
+    let tab_button = document.createElement('button')
+    tab_button.classList.add("request_tabbutton")  
+    tab_button.innerHTML = (request_data?.name || "New Request") + '<span class="close_button">❌</span>'
+    tab_button.id = d
+    tab_button.addEventListener("click", request_tab_click)
+    
+    app.opened_tabs.push(d)
+    app.tab_history.push(d)
+    app.current_tab = d
+    app.current_request = request_data
+    let request_bar_scroll_area = document.getElementById('request_bar_scroll_area')
+    request_bar_scroll_area.appendChild(tab_button)
+    request_bar_scroll_area.scrollBy(Number.MAX_SAFE_INTEGER, 0)    
+    // set modified flag, cause it's not saved
+    if (request_data?.modified === false) { 
+      set_modified(d, false)
+    } else {
+      set_modified(d, true)
+    }
+    last_id = tab_button
+  }
+
+  fill_in_forms()
+  last_id.click()
+  // let request_bar_scroll_area = document.getElementById("request_bar_scroll_area")
+  // let buttons = request_bar_scroll_area.getElementsByClassName("request_tabbutton")
+  // for (let button of buttons) {
+    
+  // }
 }
 
 function init() {  
@@ -1982,8 +2054,16 @@ function init() {
   
 
   window.addEventListener("resize", window_resize_trigger)
+}
 
-  
+window.onload = init
+
+try {
+  // loading opened earlier tabs
+  // this will start happening before the ui is fully loaded 
+  await load_previoursly_opened_tabs()
+} catch(err) {
+  console.log("can't load previous session", err)
 }
 
 
@@ -2049,25 +2129,26 @@ function fill_mock_data() {
 // fetchData()
 
 
-async function run() {
-  let fdb = new FormData()
-  fdb.append("1", "2")
-  fdb.append("3", "4")
+// async function run() {
+//   let fdb = new FormData()
+//   fdb.append("1", "2")
+//   fdb.append("3", "4")
   
   
-  console.log(await (await app.fetch("https://httpbin.org/post", {
-    headers : {
-      // "Content-Type" : "multipart/form-data",
-      "accept" : "*/*"
-    },
-    method :"POST",
-    body : fdb
-  })).text())
-}
+//   console.log(await (await app.fetch("https://httpbin.org/post", {
+//     headers : {
+//       // "Content-Type" : "multipart/form-data",
+//       "accept" : "*/*"
+//     },
+//     method :"POST",
+//     body : fdb
+//   })).text())
+// }
 
-window.onload = init
 
-await run()
+// await run()
 
 
 //contextmenu event listener
+
+
