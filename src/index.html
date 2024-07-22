@@ -100,8 +100,7 @@
       </div>
 
       <div id="main_area">
-
-        <div id="treeview1">
+        <div>
           <div id="collection_toolbar" class="navbar">
             <div class="dropdown" id="collection_add_menu">
               <button class="dropbtn">📁</button>
@@ -110,11 +109,12 @@
                 <div class="dropdown-item" id="import_collection" value="import_collection">Import collection</div>
               </div>              
             </div>
-            <input id="collection-search" type="text" value="asd"></input>
+            <input id="collection-search" type="text" value="" placeholder="search request">
           </div>
-          tree
-        </div>
 
+          <div id="treeview1">
+          </div>
+          </div>
         <div id="request_area">          
           <div id="top_row_of_the_window">
             <div class="tabbar" id="requests_tabbar">
@@ -498,6 +498,40 @@
       </div>
     </div>
 
+    <!-- treeview context menu -->
+      
+    <div class="dropdown" id="treeitem_context">
+      <div class="dropdown-content">
+          <div id="context_add_request" class="dropdown-item" value="add_request">Add request</div>
+          <div id="context_add_folder" class="dropdown-item" value="add_folder">Add folder</div>
+          <div id="context_clone" class="dropdown-item" value="clone">Clone</div>
+          <div id="context_export" class="dropdown-item" value="export">Export</div>
+          <div id="context_delete" class="dropdown-item red" value="delete">Delete</div>
+          
+      </div>              
+    </div> 
+    <!-- treeview context menu -->
+
+    <!-- input box -->
+    <div class="popup_wrapper" id="app_input_box">
+      <div id="input_box" class="popup">
+        <div id="input_box_title">
+          sample title
+        </div>
+        <div id="input_box_message">
+          this is a sample message
+        </div>
+        <div>
+          <input id="input_box_input" type="text">
+        </div>
+        <div>
+          <input type="button" id="yes">
+          <input type="button" id="no">
+        </div>
+      </div>
+    </div>
+    <!-- input box -->
+    
 
     <div class="popup_wrapper" id="app_about">
       <div class="popup">

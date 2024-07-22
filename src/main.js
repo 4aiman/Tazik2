@@ -1352,8 +1352,10 @@ function init_menus() {
 }
 
 
-function hide_element() {
-  this.style.display = 'none'
+function hide_element(event) {
+  if (event.target == this) {
+    this.style.display = 'none'
+  }
 }
 
 function init_popups() {
@@ -1363,18 +1365,99 @@ function init_popups() {
   }
 }
 
+
+function input_box(options) {
+  let output
+  let box       = document.getElementById('app_input_box')
+  let yes       = document.getElementById('yes')
+  let no        = document.getElementById('no')
+  let title     = document.getElementById('input_box_title')
+  let message   = document.getElementById('input_box_message')
+  let input     = document.getElementById('input_box_input')
+  
+  if (options.buttons.includes('yes')) {
+    yes.style.display = 'inline-block'
+    yes.value = 'yes'
+  } else {
+    yes.style.display = 'none'
+  }
+
+  if (options.buttons.includes('yes')) {
+    no.style.display = 'inline-block'
+    no.value = 'yes'
+  } else {
+    no.style.display = 'none'
+  }
+  
+ 
+  if (options.buttons.includes('confirm')) {
+    yes.style.display = 'inline-block'
+    yes.value = 'confirm'
+  } else {
+    yes.style.display = 'none'
+  }
+
+  if (options.buttons.includes('cancel')) {
+    no.style.display = 'inline-block'
+    no.value = 'cancel'
+  } else {
+    no.style.display = 'none'
+  }
+  
+
+  if (options.type == 'input') {
+    no.style.display = 'inline-block'
+  } else {
+    no.style.display = 'none'
+  }
+
+  if (options.title) {
+    title.display = 'block'
+    title.textContent = options.title
+  } else {
+    title.display = 'none'
+  } 
+
+  if (options.title) {
+    message.display = 'block'
+    message.textContent = options.message
+  } else {
+    message.display = 'none'
+  } 
+  
+
+  box.style.display = 'flex'
+  return output
+}
+
 async function keyboard_shortcuts_handler(event) {
   //console.log(event)  
-    if (event.ctrlKey && event.code === 'KeyS') {
+  if (event.ctrlKey) {
+    //save
+    if (event.code === 'KeyS') {
      // save current request
      let request = await build_request()
      app.current_request = JSON.parse(JSON.stringify(request))
      await write_request_file(app.current_tab)
-     
-   } else if (event.ctrlKey && event.code === "Enter") {
+     return 
+   } 
+   
+   // send
+   if (event.code === "Enter") {
      // run qurent request
      await send_request()
+     return
    }
+
+ }
+
+   // renaming
+   if (event.code === "F2") {
+    // run qurent request
+    let new_name = await input_box({type:'input', buttons: ['confirm', 'cancel'], title: 'Type a new name for selected item'})
+    return
+  }
+
 }
 
 
@@ -1759,6 +1842,7 @@ function fill_in_forms() {
     }
   
     ///===============================================================================
+    // process response
     
 
   } else {
@@ -1837,7 +1921,7 @@ function window_resize_trigger() {
 let u
 
 
-async function add_request() {
+async function add_request(event, data) { // pass data.id to generate request data with a specific id
   if (app.current_tab) {
     let request = await build_request()
     app.current_request = JSON.parse(JSON.stringify(request))
@@ -1858,7 +1942,7 @@ async function add_request() {
     }
   }  
 
-  let request_id = crypto.randomUUID()
+  let request_id = data?.id || crypto.randomUUID()
   let request_name = "New Request" //+ " " + app.opened_tabs.length
   
   let container = document.getElementById("request_body_wrapper")
@@ -1978,7 +2062,217 @@ async function load_previoursly_opened_tabs() {
   // }
 }
 
+// treeview ===============================
+let ppp
+
+function checkOverflow() {
+    if (this.scrollWidth > this.clientWidth) {
+        this.style.overflowX = 'auto'
+    } else {
+        this.style.overflowX = 'hidden'
+    }
+}
+
+function get_random_request_type() {
+    let types = ["GET", "POST", "PUT", "UPDATE", "REPORT", "HEAD", "OPTIONS"]
+    return types[Math.floor(Math.random()*types.length)]
+}
+
+function toggle_children_display(target) {
+
+    target.setAttribute("opened", !JSON.parse(target.getAttribute("opened")) || "false")
+    // let divs = this.getElementsByTagName("div")
+    // for (let d of divs) {
+    //     if (d == this) {continue}
+    //     if (d.style.display == 'none') {
+    //         d.style.display = 'block'
+    //     } else {
+    //         d.style.display = 'none'
+    //     }
+    // }
+    event?.stopPropagation(); 
+}
+
+let currently_selected_tree_node
+
+function tree_item_click(event) {
+    console.log(event)
+    let target = event.target
+    while (!target.classList.contains('treeitem')) {
+      target = target.parentElement
+    }
+    
+    
+    if (target.classList.contains("folder")) {
+        toggle_children_display(target)
+    }
+    event.stopPropagation()
+}
+
+function select_tree_item(event, element) {
+  let treeview1 = document.getElementById("treeview1")
+  let items = treeview1.getElementsByClassName("treeitem")
+  let target = element || this
+  while (!target.classList.contains('treeitem')) {
+    target = target.parentElement
+  }
+  
+  currently_selected_tree_node = target || this
+  for (let item of items) {
+      if (item == currently_selected_tree_node) {
+        item.setAttribute("selected", true)
+      } else {
+        item.setAttribute("selected", false)
+      }
+  }
+
+  if (currently_selected_tree_node.classList.contains('request')) {
+    let navbar = document.getElementById("requests_tabbar")
+    let buttons = navbar.getElementsByClassName('request_tabbutton')
+    let found_opened_tab
+    for (let button of buttons) {
+      if (button.id == currently_selected_tree_node.id) {
+        button.click()
+        found_opened_tab = true
+        break
+      }
+    }
+
+    if (!found_opened_tab) {
+      //
+      add_request(event, {id : currently_selected_tree_node.id})
+    }
+  }   
+}
+
+let treeview_item_menu_callee
+
+function context_menu(event) {
+    let target = event.target
+    let treeitem_context = document.getElementById("treeitem_context")
+    treeitem_context.style.display = 'none'
+    let treeview1 = document.getElementById("treeview1")
+    let items = treeitem_context.getElementsByClassName("dropdown-item")
+    console.log(target.classList)
+        for (let item of items) {
+            let value = item.getAttribute('value')
+            if (target.classList.contains("request") || target.parentElement.classList.contains("request")) {
+                if (value == "add_request" || value == "add_folder") {
+                    item.style.display = 'none'
+                }
+            } else {
+                if (value == "add_request" || value == "add_folder") {
+                    item.style.display = 'flex'
+                }
+            }
+        }
+    //console.log(event)
+    //console.log(event.clientY, treeview1.clientHeight, treeitem_context.children[0].clientHeight)
+    treeitem_context.style.top = Math.min(event.clientY - 24, treeview1.clientHeight - treeitem_context.children[0].clientHeight - 24) + 'px'
+    treeitem_context.style.left = Math.min(event.clientX - 5, treeview1.clientWidth - treeitem_context.children[0].clientWidth - 5) + 'px'
+    treeitem_context.style.display = 'inline-block'
+    treeitem_context.children[0].style.display = 'block'
+    treeview_item_menu_callee = target
+    //tree_item_click(event)
+    event.stopPropagation()
+    event.preventDefault()
+}
+
+function select_request(event) {
+    console.log(this)
+    select_tree_item(event, this)
+    event.stopPropagation(); 
+}
+
+function add_item(type, parent) {
+    if (this.id == 'add_collection' || this.id == 'context_add_folder') {
+      type = 'folder'
+      parent = treeview_item_menu_callee
+    }
+
+    if (this.id == 'context_add_request') {
+      type = 'request'
+      parent = treeview_item_menu_callee
+    }
+
+    if (parent) {
+      while (!parent.classList.contains('folder')) {
+        parent = parent.parentElement
+      }
+    }
+
+    let item = document.createElement("div")
+   
+
+    if (type=="folder") {
+        item.classList.add("folder")
+        item.classList.add("treeitem")
+        let icon = document.createElement("span")
+        icon.classList.add('folder-icon')
+        item.appendChild(icon)
+        let text = document.createElement("span")
+        text.classList.add('item-text')
+        text.textContent = "New Folder" 
+        item.appendChild(text)
+        item.setAttribute("opened", true)
+        icon.addEventListener("click", tree_item_click)
+        text.addEventListener("click", select_tree_item)
+        item.addEventListener("contextmenu", context_menu)
+        type == 'folder'
+
+    } else {
+        item.classList.add("request")
+        item.classList.add("treeitem")
+        let rt = 'GET'//get_random_request_type()
+
+        let req_type = document.createElement("span")
+        req_type.classList.add('request-type')
+        req_type.classList.add(rt)
+        req_type.textContent = rt
+        item.appendChild(req_type)
+        item.id = crypto.randomUUID()
+
+        let text = document.createElement("span")
+        text.classList.add('item-text')
+        text.textContent = "New Request" 
+        item.appendChild(text)
+        text.addEventListener("click", select_request)
+        item.addEventListener("contextmenu", context_menu)
+    }
+    
+         
+
+    let pe =  ppp || parent || document.getElementById("treeview1")
+
+    // if (Math.random() > 0.3 && item.classList.contains('folder')) {
+    //   ppp = item
+    // } else {
+    //     ppp = document.getElementById("treeview1")
+    // }
+    
+    // if (item.classList.contains("request") && !pe.classList.contains("folder")) {
+    //     console.log("adding folder for a req")
+    //    // pe = add_item("folder", pe)
+    // }
+    console.log(pe, item)
+    pe.appendChild(item)
+    document.getElementById("treeview1").scrollBy(0, Number.MAX_SAFE_INTEGER)
+    return item
+}
+
+// treeview ===============================
+
+
+
 function init() {  
+  // treeview plaecholder
+  let treeview1 = document.getElementById("treeview1")
+  treeview1.addEventListener("scroll", checkOverflow)
+  for (let i=1; i<50; i++) {
+      //add_item()
+  }
+  // --------------------
+
   console.log('init')
   // enable add_row buttons (those adding rows to param tables)
   let add_row_buttons = document.getElementsByClassName('add_row_button')
@@ -2026,7 +2320,20 @@ function init() {
       button.dispatchEvent(event);
     }
   }
+
+  // collection manipulation
+  let add_collection = document.getElementById('add_collection')
+  let context_add_request = document.getElementById('context_add_request')
+  let context_add_folder  = document.getElementById('context_add_folder')
+  let context_clone       = document.getElementById('context_clone')
+  let context_export      = document.getElementById('context_export')
+  let context_delete      = document.getElementById('context_delete')
+
+  add_collection.addEventListener("click", add_item)
+  context_add_folder.addEventListener("click", add_item)
+  context_add_request.addEventListener("click", add_item)
   
+  //---------------------------------------
     
   let beautify_raw_data_body = document.getElementById('beautify_raw_data_body')
   let beautify_raw_data_response = document.getElementById('beautify_raw_data_response')

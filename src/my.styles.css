@@ -375,7 +375,7 @@ input:not(input[type="text"]) {
 }
 
 #collection_toolbar {
-  width: 100%;
+  width: 200pt;
   height: 26pt;
   display: flex;
 }
@@ -392,14 +392,7 @@ input:not(input[type="text"]) {
   width:70%;
 }
 
-#treeview1 {
-  display: flex;
-  flex-grow: initial;
-  flex-direction: column;
-  width: 200pt;
-  height: 100%;
-  /* outline: 1px solid wheat; */
-}
+
 
 #add_method_input {
   border: none;
@@ -796,7 +789,7 @@ footer * {
 }
 /* --------------------------- */
 
-label, button, .treeview, .menuitem, .menu {
+label, button, #treeview, .menuitem, .menu {
   user-select: none;  
   cursor: pointer;
 }
@@ -1036,3 +1029,232 @@ label, button, .treeview, .menuitem, .menu {
   display: inline-block;
   
 }
+
+/* treeview */
+#treeview1 {
+  display: flex;
+  flex-grow: initial;
+  flex-direction: column;
+  width: 200pt;
+  height: calc(100% - 30pt);
+  /* outline: 1px solid wheat; */
+  padding-left: 6pt;
+  overflow: auto;
+  /* overflow-x: hidden;  */
+}
+
+
+#add {
+  width: 100pt;
+  height: 25pt;
+  /* outline: 1px solid burlywood; */
+  display: inline-block;
+  position: absolute;
+  top: 5pt;
+  left:220pt;
+  background-color: #222;
+  border-radius: 5pt;
+  border-color: burlywood;
+  border-style: solid;
+  border-width: 1pt;
+}
+
+#add:hover {
+  background-color: #444;
+}
+
+.folder {
+  /* display: flex; */
+  cursor: pointer;
+  line-height: 24pt;
+  white-space: nowrap;
+}
+
+
+
+.folder > .request {
+  margin-left:calc(16pt + 5pt);
+  line-height: 24pt;
+}
+
+.folder > .folder {
+  margin-left: 21pt;
+}
+
+ 
+.folder:hover:not(:has(.folder:hover, .request:hover)),
+.request:hover {
+  /* outline: 1px solid red; */
+  /* background-color: #444; */
+  /* width: 100%; */
+  /* height: 24pt; */
+  /* display: block; */
+  /* position: absolute; */
+  /* content: " " */
+  color: #6bdd92;
+ }
+
+.folder[opened=true] > .folder,
+.folder[opened=true] > .request {
+  display: block;
+}
+
+.folder[opened=false] > .folder,
+.folder[opened=false] > .request {
+  display: none;
+}
+
+.folder[opened=true] > .folder-icon {
+  background-image: url(folder_opened.png);
+  background-size: contain;
+  display: inline-block;
+}
+
+.folder[opened=false] > .folder-icon {
+  background-image: url(folder.png);
+  background-size: contain;
+  display: inline-block;
+}
+
+
+.folder:hover:not(:has(.folder:hover, .request:hover)) > .mdots,
+.request:hover > .mdots {
+  display: none;
+  /* display: flex; */
+}
+
+.request > .mdots,
+.folder > .mdots {
+  display: none;
+}
+
+.folder-icon {
+  width: 16pt;
+  height: 16pt;
+  
+  
+  background-position-y: 0pt;
+  position: relative;
+  top: 3pt;
+  margin-right: 5pt;
+}
+
+.request-type {
+  width: 32pt;
+  display: inline-block;
+  position: relative;
+  top: 0pt;
+  right: 0pt;
+  margin-right: 5pt;
+  font-size: 7pt;
+  text-align: center;
+  border-width: 1pt;
+  border-radius: 5pt;
+  border-style: solid;
+  border-color: #666;
+  padding-left: 3pt;
+  padding-right: 3pt;
+  outline: 1px solid #f5f5f545;
+  outline-offset: -3pt;
+  line-height: 16pt;
+}
+
+.request-type[class*="GET"] {
+  color: #6bdd92;
+  background-color: #234730;
+}
+
+.request-type[class*="POST"] {
+  color: #ffe479;
+  background-color: #3a341c;
+}
+
+.request-type[class*="PUT"] {
+  color: #74aeed;
+  background-color: #203142;
+}
+
+.request-type[class*="UPDATE"] {
+  color: #c0a8d9;
+  background-color: #3c3444;
+}
+
+.request-type[class*="REPORT"] {
+  color: #f15eae;
+  background-color: #471b33;
+}
+
+.request-type[class*="HEAD"] {
+  color: #7cfad0;
+  background-color: #2a4e42;
+}
+
+.request-type[class*="OPTIONS"] {
+  color: #f79a87;
+  background-color: #684139;
+}
+
+
+
+.mdots {
+  position: relative;
+  float: right;
+  margin-right: 5pt;
+  padding: 0pt 5pt;
+  text-align: inherit;
+  display: flex;
+  height: 21pt;
+  outline: 1px solid lime;
+  background: #222;
+  border-radius: 5pt;
+}
+
+.treeitem > .item-text{
+  padding-right: 10pt;
+  line-height: 24pt;
+}
+
+#treeitem_context {
+  position: absolute;
+  font-family: Arial, Helvetica, sans-serif;
+} 
+
+.treeitem[selected=true] > .item-text {
+  text-shadow: 0 0 1pt orange;
+  text-decoration: underline;
+}
+
+.treeitem[selected=false] > .item-text {
+  text-shadow: initial;
+  text-decoration: initial;
+}
+
+/* inputbox  */
+
+#input_box_title {
+  font-weight: bold;
+  margin-bottom: 10pt;
+}
+
+#input_box_input {
+  width: calc(100% - 10pt);  
+  padding: 0pt;
+  margin: 5pt 0;
+  padding: 0 5pt;
+}
+
+#input_box {
+  height: auto;
+}
+
+#input_box input {
+  border-radius: 5pt;
+}
+
+#yes, #no {
+  min-width: 100pt;
+  float: right;
+  margin-right: 0;
+  margin-left: 10pt;
+}
+/* inputbox  */
