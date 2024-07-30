@@ -1172,7 +1172,7 @@ function option_selected(event, element) {
   menu.style.display = 'none'
 }
 
-function open_combobox() {
+function open_combobox(event) {
   let combobox = this  
   while (!(combobox.classList?.contains('dropdown'))) {
     combobox = combobox.parentElement
@@ -1198,10 +1198,12 @@ function open_combobox() {
         item.setAttribute('selected', false)
       }
     }
-    button.value = this.textContent
+    // this changes value of the combobox to its *text* value (i.e. the visible one) and botches all the comboboxes logic
+    //button.value = this.textContent
     menu.style.display = 'block'
   }
   combobox.setAttribute('opened', !opened)
+  event.stopPropagation()
 }
 
 function init_comboboxes() {
