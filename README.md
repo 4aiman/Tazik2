@@ -1,4 +1,4 @@
-# What is is?
+# What is this?
 
 This is a Postman-like API test app.
 You can add requests, methods, payload, etc and send them wherever to get a response.
